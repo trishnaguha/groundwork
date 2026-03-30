@@ -9,11 +9,15 @@ Built for teams that maintain architecture docs separately from code and need to
 Copy the `groundwork/` directory into your Claude Code skills folder:
 
 ```bash
+
+# Clone the Repository
+git clone https://github.com/trishnaguha/groundwork.git
+
 # Create the skills directory if it doesn't exist
 mkdir -p ~/.claude/skills
 
 # Copy the skill (from wherever you have the source)
-cp -r groundwork ~/.claude/skills/
+cp -r ./groundwork ~/.claude/skills/
 ```
 
 The skill directory must end up at `~/.claude/skills/groundwork/` with this structure:
