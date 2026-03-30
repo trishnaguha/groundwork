@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groundwork: __PROJECT_NAME__</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #fafafa; --bg-alt: #f0f0f5; --bg-code: #f4f4f8;
+  --fg: #1a1a1a; --fg-dim: #6b7280; --fg-heading: #111827;
+  --sidebar-bg: #111827; --sidebar-fg: #d1d5db; --sidebar-active: #818cf8;
+  --accent: #4f46e5; --accent-light: #e0e7ff;
+  --border: #e5e7eb; --border-strong: #d1d5db;
+  --green: #059669; --green-bg: #d1fae5;
+  --yellow: #d97706; --yellow-bg: #fef3c7;
+  --red: #dc2626; --red-bg: #fee2e2;
+  --blue: #2563eb; --blue-bg: #dbeafe;
+  --radius: 6px; --shadow: 0 1px 3px rgba(0,0,0,.08);
+  --nav-w: 260px; --main-max: 920px;
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a; --bg-alt: #1e293b; --bg-code: #1e293b;
+  --fg: #e2e8f0; --fg-dim: #94a3b8; --fg-heading: #f1f5f9;
+  --sidebar-bg: #020617; --sidebar-fg: #94a3b8; --sidebar-active: #a5b4fc;
+  --accent: #818cf8; --accent-light: #1e1b4b;
+  --border: #334155; --border-strong: #475569;
+  --green-bg: #064e3b; --yellow-bg: #78350f; --red-bg: #7f1d1d; --blue-bg: #1e3a5f;
+  --shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', sans-serif;
+  font-size: 15px; line-height: 1.65; color: var(--fg); background: var(--bg);
+}
+
+/* ── Sidebar ── */
+nav {
+  position: fixed; top: 0; left: 0; bottom: 0; width: var(--nav-w);
+  background: var(--sidebar-bg); color: var(--sidebar-fg);
+  overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+  scrollbar-width: thin; scrollbar-color: #374151 transparent;
+}
+.nav-header {
+  padding: 20px 16px 12px; border-bottom: 1px solid #1f2937;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+}
+.nav-header h2 {
+  font-size: 14px; font-weight: 600; color: #f9fafb;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-meta { font-size: 11px; color: #6b7280; width: 100%; }
+#theme-toggle {
+  background: none; border: 1px solid #374151; color: #9ca3af;
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px;
+  transition: border-color .2s;
+}
+#theme-toggle:hover { border-color: #6b7280; }
+.nav-links { list-style: none; padding: 8px 0; flex: 1; }
+.nav-links li a {
+  display: block; padding: 6px 16px; font-size: 12.5px; color: var(--sidebar-fg);
+  text-decoration: none; border-left: 2px solid transparent; transition: all .15s;
+}
+.nav-links li a:hover { color: #f9fafb; background: rgba(255,255,255,.04); }
+.nav-links li a.active {
+  color: var(--sidebar-active); border-left-color: var(--sidebar-active);
+  background: rgba(129,140,248,.08);
+}
+.nav-links li a.nav-sub { padding-left: 28px; font-size: 11.5px; color: #6b7280; }
+
+.nav-filter {
+  padding: 8px 12px; border-top: 1px solid #1f2937;
+}
+.nav-filter input {
+  width: 100%; padding: 5px 8px; font-size: 12px; border-radius: 4px;
+  border: 1px solid #374151; background: #1f2937; color: #d1d5db; outline: none;
+}
+.nav-filter input:focus { border-color: var(--sidebar-active); }
+.nav-filter input::placeholder { color: #4b5563; }
+
+/* ── Main ── */
+main {
+  margin-left: var(--nav-w); min-height: 100vh;
+  padding: 0 40px 80px;
+}
+.report-header {
+  padding: 32px 0 24px; border-bottom: 2px solid var(--accent);
+  margin-bottom: 32px;
+}
+.report-header h1 {
+  font-size: 1.75rem; font-weight: 700; color: var(--fg-heading);
+  letter-spacing: -.02em;
+}
+.report-header .subtitle { font-size: 13px; color: var(--fg-dim); margin-top: 4px; }
+.stats-bar {
+  display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;
+}
+.stat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 500;
+  background: var(--bg-alt); color: var(--fg-dim); border: 1px solid var(--border);
+}
+.stat strong { color: var(--fg); }
+
+/* ── Sections ── */
+section {
+  max-width: var(--main-max); margin: 0 auto 40px;
+  border-radius: var(--radius); background: var(--bg);
+}
+section > h2 {
+  font-size: 1.25rem; font-weight: 650; color: var(--fg-heading);
+  padding: 16px 0 12px; border-bottom: 1px solid var(--border);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+}
+section > h2::before {
+  content: ''; display: inline-block; width: 4px; height: 20px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+}
+section > h2 .collapse-icon {
+  margin-left: auto; font-size: 11px; color: var(--fg-dim);
+  transition: transform .2s;
+}
+section.collapsed > h2 .collapse-icon { transform: rotate(-90deg); }
+section.collapsed > .section-body { display: none; }
+.section-body { padding: 0 0 8px; }
+.section-body h3 {
+  font-size: 1rem; font-weight: 600; color: var(--fg-heading);
+  margin: 20px 0 8px; padding-top: 8px;
+}
+.section-body h4 {
+  font-size: .875rem; font-weight: 600; color: var(--fg);
+  margin: 12px 0 6px;
+}
+.section-body p { margin: 0 0 12px; }
+.section-body ul, .section-body ol { margin: 0 0 12px; padding-left: 20px; }
+.section-body li { margin-bottom: 4px; }
+.section-body hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; margin: 12px 0 16px; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead { background: var(--bg-alt); position: sticky; top: 0; }
+th {
+  padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--fg-dim);
+  border-bottom: 1px solid var(--border-strong);
+}
+td {
+  padding: 7px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tbody tr:hover { background: var(--accent-light); }
+tbody tr:last-child td { border-bottom: none; }
+
+.table-filter { margin-bottom: 8px; }
+.table-filter input {
+  padding: 6px 10px; font-size: 13px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg); color: var(--fg);
+  width: 280px; max-width: 100%; outline: none;
+}
+.table-filter input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+
+/* ── Code ── */
+pre {
+  background: var(--bg-code); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; overflow-x: auto;
+  font-size: 13px; line-height: 1.55; margin: 8px 0 16px;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+code {
+  font-family: inherit; font-size: .92em;
+  background: var(--bg-code); padding: 1px 5px; border-radius: 3px;
+}
+pre code { background: none; padding: 0; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .02em;
+}
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+.badge-gray { background: var(--bg-alt); color: var(--fg-dim); }
+
+/* ── Coverage bar ── */
+.coverage-bar {
+  display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--bg-alt); margin: 8px 0;
+}
+.coverage-bar .fill { height: 100%; }
+.coverage-bar .fill-green { background: var(--green); }
+.coverage-bar .fill-yellow { background: var(--yellow); }
+.coverage-bar .fill-red { background: var(--red); }
+
+/* ── Key-value list ── */
+.kv-list { margin: 8px 0 16px; }
+.kv-row {
+  display: flex; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.kv-row:last-child { border-bottom: none; }
+.kv-key { font-weight: 600; color: var(--fg-heading); min-width: 160px; flex-shrink: 0; }
+.kv-val { color: var(--fg); }
+
+/* ── Callout ── */
+.callout {
+  border-left: 3px solid var(--accent); background: var(--accent-light);
+  padding: 12px 16px; border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 12px 0 16px; font-size: 14px;
+}
+.callout-warn { border-left-color: var(--yellow); background: var(--yellow-bg); }
+.callout-error { border-left-color: var(--red); background: var(--red-bg); }
+
+/* ── Details / Accordion ── */
+details {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin: 8px 0; overflow: hidden;
+}
+details summary {
+  padding: 10px 14px; cursor: pointer; font-weight: 500; font-size: 14px;
+  background: var(--bg-alt); user-select: none; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+details summary::before {
+  content: '\25B8'; font-size: 11px; color: var(--fg-dim);
+  transition: transform .15s;
+}
+details[open] summary::before { transform: rotate(90deg); }
+details summary::-webkit-details-marker { display: none; }
+details .details-body { padding: 12px 14px; }
+
+/* ── Back to top ── */
+#back-to-top {
+  position: fixed; bottom: 24px; right: 24px; width: 36px; height: 36px;
+  border-radius: 50%; background: var(--accent); color: #fff; border: none;
+  font-size: 16px; cursor: pointer; opacity: 0; transition: opacity .2s;
+  box-shadow: var(--shadow); z-index: 50; display: flex; align-items: center; justify-content: center;
+}
+#back-to-top.visible { opacity: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  nav { transform: translateX(-100%); transition: transform .25s; }
+  nav.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.3); }
+  main { margin-left: 0; padding: 0 20px 60px; }
+  #menu-toggle { display: flex; }
+}
+@media (min-width: 861px) { #menu-toggle { display: none; } }
+#menu-toggle {
+  position: fixed; top: 12px; left: 12px; z-index: 200;
+  width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg); color: var(--fg); font-size: 18px; cursor: pointer;
+  align-items: center; justify-content: center;
+}
+
+/* ── Print ── */
+@media print {
+  nav, #back-to-top, #menu-toggle, .collapse-icon, .table-filter { display: none !important; }
+  main { margin-left: 0; padding: 0; }
+  section.collapsed > .section-body { display: block !important; }
+  section { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<button id="menu-toggle" aria-label="Menu">&#9776;</button>
+
+<nav id="sidebar">
+  <div class="nav-header">
+    <h2>__PROJECT_NAME__</h2>
+    <p class="nav-meta">__DATE__</p>
+    <button id="theme-toggle" aria-label="Toggle theme">&#9684;</button>
+  </div>
+  <div class="nav-filter">
+    <input type="text" id="nav-search" placeholder="Filter sections..." autocomplete="off">
+  </div>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#summary">Executive Summary</a></li>
+    <li><a href="#identity">1. Project Identity</a></li>
+    <li><a href="#architecture">2. Architecture</a></li>
+    <li><a href="#directory">3. Directory &amp; Modules</a></li>
+    <li><a href="#stack">4. Tech Stack &amp; Deps</a></li>
+    <li><a href="#entrypoints">5. Entry Points &amp; Flows</a></li>
+    <li><a href="#conventions">6. Coding Conventions</a></li>
+    <li><a href="#api">7. API Surface</a></li>
+    <li><a href="#data">8. Data Models</a></li>
+    <li><a href="#testing">9. Testing</a></li>
+    <li><a href="#cicd">10. Build &amp; CI/CD</a></li>
+    <li><a href="#getting-started">11. Getting Started</a></li>
+    <li><a href="#handbook">12. Handbook Assessment</a></li>
+    <li><a href="#correlation">13. Correlation Matrix</a></li>
+    <li><a href="#crossref">14. Cross-Reference</a></li>
+    <li><a href="#verification">15. Verification</a></li>
+    <li><a href="#git">16. Git History</a></li>
+    <li><a href="#findings">17. Key Findings</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <div class="report-header">
+    <h1>Groundwork: __PROJECT_NAME__</h1>
+    <p class="subtitle">__CODE_REPO_PATH__ &mdash; __HANDBOOK_REPO_PATH__</p>
+    <div class="stats-bar">
+      <span class="stat"><strong>__FILES_COUNT__</strong> files read</span>
+      <span class="stat"><strong>__DOCS_COUNT__</strong> handbook pages</span>
+      <span class="stat"><strong>__IMAGES_COUNT__</strong> images analyzed</span>
+    </div>
+  </div>
+
+  <!-- ====== SECTION: EXECUTIVE SUMMARY ====== -->
+  <section id="summary">
+    <h2>Executive Summary <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_SUMMARY__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: PROJECT IDENTITY ====== -->
+  <section id="identity">
+    <h2>1. Project Identity <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_IDENTITY__ -->
+      <!--
+        Use .kv-list for key-value pairs:
+        <div class="kv-list">
+          <div class="kv-row"><span class="kv-key">Purpose</span><span class="kv-val">...</span></div>
+          <div class="kv-row"><span class="kv-key">Language</span><span class="kv-val">Python</span></div>
+        </div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: ARCHITECTURE ====== -->
+  <section id="architecture">
+    <h2>2. Architecture <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_ARCHITECTURE__ -->
+      <!--
+        Use <details> for collapsible diagram analysis:
+        <details>
+          <summary>auth-flow.png - Authentication Flow Diagram</summary>
+          <div class="details-body">
+            <p><strong>Depicts:</strong> ...</p>
+            <p><strong>Accuracy:</strong> <span class="badge badge-green">Matches code</span></p>
+          </div>
+        </details>
+
+        Use .callout for divergences:
+        <div class="callout callout-warn">
+          <strong>Divergence:</strong> Handbook shows Service X communicating via gRPC, but code uses REST.
+        </div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: DIRECTORY STRUCTURE ====== -->
+  <section id="directory">
+    <h2>3. Directory &amp; Modules <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_DIRECTORY__ -->
+      <!--
+        Use <pre> for directory trees, <details> for module descriptions:
+        <pre>src/
+  auth/          Authentication module
+  api/           REST API handlers
+  models/        Data models</pre>
+        <details>
+          <summary>src/auth/ - Authentication Module</summary>
+          <div class="details-body"><p>Handles JWT validation, OAuth2 flows...</p></div>
+        </details>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: TECH STACK ====== -->
+  <section id="stack">
+    <h2>4. Tech Stack &amp; Dependencies <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_STACK__ -->
+      <!--
+        Use .table-wrap > table for dependency tables:
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Category</th><th>Dependency</th><th>Version</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-blue">Core</span></td><td>express</td><td>4.18</td><td>HTTP server</td></tr>
+            </tbody>
+          </table>
+        </div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: ENTRY POINTS ====== -->
+  <section id="entrypoints">
+    <h2>5. Entry Points &amp; Flows <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_ENTRYPOINTS__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: CODING CONVENTIONS ====== -->
+  <section id="conventions">
+    <h2>6. Coding Conventions <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_CONVENTIONS__ -->
+      <!--
+        Use <pre> for code snippets with a label:
+        <h4>Naming - snake_case for variables</h4>
+        <pre>user_name = get_current_user()
+task_count = db.query(Task).count()
+is_active = user.check_status()</pre>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: API SURFACE ====== -->
+  <section id="api">
+    <h2>7. API Surface <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_API__ -->
+      <!--
+        Use a filterable table:
+        <div class="table-filter"><input type="text" data-filter-table="api-table" placeholder="Filter endpoints..."></div>
+        <div class="table-wrap">
+          <table id="api-table">
+            <thead><tr><th>Method</th><th>Path</th><th>Handler</th><th>Auth</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-green">GET</span></td><td>/api/v1/users</td><td>list_users</td><td>JWT</td><td>List all users</td></tr>
+              <tr><td><span class="badge badge-blue">POST</span></td><td>/api/v1/users</td><td>create_user</td><td>JWT+Admin</td><td>Create user</td></tr>
+            </tbody>
+          </table>
+        </div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: DATA MODELS ====== -->
+  <section id="data">
+    <h2>8. Data Models &amp; Persistence <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_DATA__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: TESTING ====== -->
+  <section id="testing">
+    <h2>9. Testing <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_TESTING__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: CI/CD ====== -->
+  <section id="cicd">
+    <h2>10. Build &amp; CI/CD <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_CICD__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: GETTING STARTED ====== -->
+  <section id="getting-started">
+    <h2>11. Getting Started <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_GETTING_STARTED__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: HANDBOOK ASSESSMENT ====== -->
+  <section id="handbook">
+    <h2>12. Handbook Assessment <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_HANDBOOK__ -->
+      <!--
+        Use coverage bar:
+        <p><strong>Documentation Coverage</strong></p>
+        <div class="coverage-bar">
+          <div class="fill fill-green" style="width:60%"></div>
+          <div class="fill fill-yellow" style="width:25%"></div>
+          <div class="fill fill-red" style="width:15%"></div>
+        </div>
+        <p style="font-size:13px;color:var(--fg-dim)">60% full &bull; 25% partial &bull; 15% none</p>
+
+        Design proposal status badges:
+        <span class="badge badge-green">Implemented</span>
+        <span class="badge badge-yellow">Partial</span>
+        <span class="badge badge-blue">Pending</span>
+        <span class="badge badge-gray">Abandoned</span>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: CORRELATION MATRIX ====== -->
+  <section id="correlation">
+    <h2>13. Correlation Matrix <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_CORRELATION__ -->
+      <!--
+        Use filterable tables for both directions:
+        <h3>Handbook &rarr; Code</h3>
+        <div class="table-filter"><input type="text" data-filter-table="h2c-table" placeholder="Filter handbook pages..."></div>
+        <div class="table-wrap">
+          <table id="h2c-table">
+            <thead><tr><th>Handbook Page</th><th>Related Code</th><th>Match</th><th>Confidence</th><th>Refs Verified</th></tr></thead>
+            <tbody>
+              <tr><td>auth-design.md</td><td>src/auth/</td><td><span class="badge badge-blue">Explicit</span></td><td><span class="badge badge-green">Strong</span></td><td>5 of 5</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Code &rarr; Handbook</h3>
+        <div class="table-filter"><input type="text" data-filter-table="c2h-table" placeholder="Filter code modules..."></div>
+        <div class="table-wrap">
+          <table id="c2h-table">
+            <thead><tr><th>Code Module</th><th>Handbook Pages</th><th>Coverage</th><th>Gaps</th></tr></thead>
+            <tbody>
+              <tr><td>src/auth/</td><td>auth-design.md</td><td><span class="badge badge-green">Full</span></td><td>-</td></tr>
+              <tr><td>src/utils/</td><td>-</td><td><span class="badge badge-red">None</span></td><td>No handbook page</td></tr>
+            </tbody>
+          </table>
+        </div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: CROSS-REFERENCE FINDINGS ====== -->
+  <section id="crossref">
+    <h2>14. Cross-Reference Findings <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_CROSSREF__ -->
+      <!--
+        Use callouts for different finding types:
+        <div class="callout callout-error"><strong>Orphaned Code:</strong> src/notifications/ has no handbook coverage.</div>
+        <div class="callout callout-warn"><strong>Stale Doc:</strong> api-v1.md references deprecated endpoint /api/v1/legacy.</div>
+        <div class="callout"><strong>Contradiction:</strong> auth-design.md says OAuth2, security.md says SAML.</div>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: VERIFICATION ====== -->
+  <section id="verification">
+    <h2>15. Verification Summary <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_VERIFICATION__ -->
+      <!--
+        Use .kv-list for the verification metrics:
+        <div class="kv-list">
+          <div class="kv-row"><span class="kv-key">Total claims checked</span><span class="kv-val"><strong>142</strong></span></div>
+          <div class="kv-row"><span class="kv-key">Passed</span><span class="kv-val"><span class="badge badge-green">138</span></span></div>
+          <div class="kv-row"><span class="kv-key">Corrected</span><span class="kv-val"><span class="badge badge-yellow">3</span></span></div>
+          <div class="kv-row"><span class="kv-key">Removed</span><span class="kv-val"><span class="badge badge-red">1</span></span></div>
+          <div class="kv-row"><span class="kv-key">Pass rate</span><span class="kv-val"><strong>97.2%</strong></span></div>
+          <div class="kv-row"><span class="kv-key">Confidence</span><span class="kv-val"><span class="badge badge-green">High</span></span></div>
+        </div>
+
+        Use <details> for corrections/removals:
+        <details>
+          <summary>3 corrections made</summary>
+          <div class="details-body">
+            <p><strong>Before:</strong> "uses express 4.17" <strong>After:</strong> "uses express 4.18.2" (version corrected from package.json)</p>
+          </div>
+        </details>
+        <details>
+          <summary>1 item removed</summary>
+          <div class="details-body">
+            <p>"src/legacy/old-handler.js" referenced but file does not exist — excluded from report</p>
+          </div>
+        </details>
+      -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: GIT HISTORY ====== -->
+  <section id="git">
+    <h2>16. Code Repo Git History <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_GIT__ -->
+    </div>
+  </section>
+
+  <!-- ====== SECTION: KEY FINDINGS ====== -->
+  <section id="findings">
+    <h2>17. Key Findings for New Engineers <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_FINDINGS__ -->
+      <!--
+        Use ordered list with callouts for top findings:
+        <ol>
+          <li><strong>Finding title</strong> - Description of finding</li>
+        </ol>
+
+        <h3>Common Pitfalls</h3>
+        <ul><li>...</li></ul>
+
+        <h3>Where to Start Reading</h3>
+        <ol><li>Start with src/app.py for the main entry point</li></ol>
+      -->
+    </div>
+  </section>
+
+</main>
+
+<button id="back-to-top" aria-label="Back to top">&#8593;</button>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Theme ──
+  const root = document.documentElement;
+  const saved = localStorage.getItem('da-theme');
+  if (saved) root.setAttribute('data-theme', saved);
+  else if (matchMedia('(prefers-color-scheme:dark)').matches) root.setAttribute('data-theme','dark');
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('da-theme', next);
+  });
+
+  // ── Mobile menu ──
+  const nav = document.getElementById('sidebar');
+  const menuBtn = document.getElementById('menu-toggle');
+  menuBtn.addEventListener('click', () => nav.classList.toggle('open'));
+  nav.addEventListener('click', e => { if (e.target.tagName === 'A') nav.classList.remove('open'); });
+
+  // ── Section collapse ──
+  document.querySelectorAll('section > h2').forEach(h2 => {
+    h2.addEventListener('click', () => h2.parentElement.classList.toggle('collapsed'));
+  });
+
+  // ── Scroll spy ──
+  const links = document.querySelectorAll('#nav-links a');
+  const sections = document.querySelectorAll('main section');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`#nav-links a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+  sections.forEach(s => observer.observe(s));
+
+  // ── Back to top ──
+  const btt = document.getElementById('back-to-top');
+  window.addEventListener('scroll', () => {
+    btt.classList.toggle('visible', window.scrollY > 400);
+  }, { passive: true });
+  btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  // ── Nav filter ──
+  document.getElementById('nav-search').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    links.forEach(a => {
+      a.parentElement.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+
+  // ── Table filter ──
+  document.querySelectorAll('[data-filter-table]').forEach(input => {
+    const table = document.getElementById(input.dataset.filterTable);
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    input.addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      rows.forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
