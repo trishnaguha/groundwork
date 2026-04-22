@@ -8,27 +8,42 @@ description: >-
   "review this repository", "read all the code", "analyze the handbook",
   "analyze the engineering handbook", "read the Ansible handbook",
   "run groundwork", "do groundwork analysis",
-  or wants a holistic understanding of a code repository and its
-  engineering handbook including architecture designs, system design plans,
-  and implementation proposals. Reads ALL source files comprehensively.
-  Looks for "The Ansible Engineering Handbook" directory in the handbook repo.
-  Analyzes git history for the code repo. Every data point is verified
+  "analyze these projects together", "compare these codebases",
+  "find overlap between these repos", "what do these projects have in common",
+  or wants a holistic understanding of one or more code repositories,
+  optionally correlated with an engineering handbook or documentation directory.
+  Reads ALL source files comprehensively. Optionally correlates with docs.
+  Analyzes git history for each code repo. Every data point is verified
   against source files before report generation.
-argument-hint: <code-repo-path> <handbook-repo-path> [--focus=architecture|patterns|api|testing|devops|docs]
+argument-hint: <project-path> [<project-path> ...] [--docs-dir=<path>] [--handbook=<path>] [--focus=architecture|patterns|api|testing|devops|docs]
 tools: Read, Write, Glob, Grep, Bash
 ---
 
-# Groundwork: Codebase + Handbook Analyzer
+# Groundwork: Multi-Project Codebase Analyzer
 
-Perform a comprehensive, holistic analysis of a code repository and its associated engineering handbook. Read ALL source files, ALL handbook docs, and ALL images. Build a full correlation matrix between code and documentation. Analyze git history for the code repo. Every data point is verified against source files before report generation -- nothing makes it into the report without proof it exists in the repos.
+Perform a comprehensive analysis of one or more code repositories, optionally correlated with an engineering handbook or documentation directory. Read ALL source files in each project. When docs are provided, build a full correlation matrix between code and documentation. When multiple projects are given, identify overlapping user stories across codebases. Analyze git history for each code repo. Every data point is verified against source files before report generation -- nothing makes it into the report without proof it exists in the repos.
 
 ## Inputs
 
-- `$0`: Path to the code repository (required)
-- `$1`: Path to the handbook repository (required). Must contain a directory named "The Ansible Engineering Handbook".
+- `<project-path>`: One or more paths to code repositories (at least one required).
+- `--docs-dir=<path>`: Optional path to a documentation directory. Applied globally for correlation analysis against all projects.
+- `--handbook=<path>`: Optional convenience alias. Looks for "The Ansible Engineering Handbook" subdirectory inside `<path>`. If found, uses that as the docs path. If not found, falls back to using `<path>` directly as a generic docs dir (with a warning). Mutually exclusive with `--docs-dir`.
 - `--focus=<area>`: Optional focus area for expanded analysis. Values: architecture, patterns, api, testing, devops, docs.
 
-Parse `$ARGUMENTS` by splitting on spaces. First non-flag token is the code repo path, second is the handbook repo path. Extract any `--focus=X` flag.
+Parse `$ARGUMENTS` by splitting on spaces. All non-flag tokens are project paths. Extract `--docs-dir=X`, `--handbook=X`, and `--focus=X` flags. Error if both `--docs-dir` and `--handbook` are provided.
+
+### Backward Compatibility
+
+If exactly two non-flag paths are given and the second contains a directory named "The Ansible Engineering Handbook", treat the second as `--handbook=<path>` and emit a deprecation notice: "Note: Detected handbook repo as second argument. In the future, please use --handbook=<path> explicitly. Treating second path as handbook."
+
+### Internal State
+
+After parsing, set:
+- `PROJECTS` = list of project paths (1 or more)
+- `DOCS_PATH` = resolved docs directory path, or null if no docs provided
+- `DOCS_MODE` = "handbook" (--handbook with Ansible handbook found), "generic" (--docs-dir or --handbook fallback), or null
+- `FOCUS` = focus area string or null
+- `MULTI_PROJECT` = true if len(PROJECTS) > 1
 
 ## Phase 1: Discovery & Orientation
 
