@@ -1,10 +1,10 @@
-# Code-Handbook Correlation Guide
+# Code-Documentation Correlation Guide
 
-Detailed methodology for building the bidirectional correlation matrix between the code repository and "The Ansible Engineering Handbook". This is the most critical analysis phase -- it connects what the documentation says with what the code actually does.
+Detailed methodology for building the bidirectional correlation matrix between code repositories and the documentation directory. When multiple projects are analyzed, the matrix maps docs against all projects. This is the most critical analysis phase -- it connects what the documentation says with what the code actually does.
 
-## Step 1: Extract Code References from Handbook Pages
+## Step 1: Extract Code References from Docs Pages
 
-For each markdown file in the handbook, scan for and extract:
+For each markdown file in the docs directory, scan for and extract:
 
 ### Explicit References
 - **File paths**: Patterns like `src/`, `lib/`, `app/`, `./`, `/`, or any path-like strings with directory separators
@@ -30,7 +30,7 @@ Scan fenced code blocks (` ``` `) in markdown for:
 - SVG files (read as text) contain labels and text elements
 
 ### Output Format
-For each handbook page, produce:
+For each docs page, produce:
 ```
 Page: architecture/auth-design.md
 Explicit References:
@@ -43,12 +43,12 @@ Implicit Topics:
   - authentication, authorization, JWT, OAuth2, session management
 ```
 
-## Step 2: Match Code to Handbook Semantically
+## Step 2: Match Code to Docs Semantically
 
-Not all connections are explicit. When a handbook page discusses a topic without naming specific files, use semantic matching:
+Not all connections are explicit. When a docs page discusses a topic without naming specific files, use semantic matching:
 
 ### Topic Extraction
-From each handbook page, extract key domain terms:
+From each docs page, extract key domain terms:
 - Section headings as topic indicators
 - Frequently used nouns and technical terms
 - Problem domain language (not generic programming terms)
@@ -63,26 +63,26 @@ For each code module/directory, identify its domain:
 ### Matching Confidence Levels
 
 **Strong match (high confidence)**:
-- Handbook page explicitly references file path in the code module
-- Handbook page names a class/function that exists in the module
-- Code module's README references the handbook page
+- Docs page explicitly references file path in the code module
+- Docs page names a class/function that exists in the module
+- Code module's README references the docs page
 
 **Medium match (reasonable confidence)**:
-- Handbook page discusses the same domain as the module name suggests
-- Service names in handbook match module directory names
-- API endpoints in handbook correspond to route files in the module
+- Docs page discusses the same domain as the module name suggests
+- Service names in docs match module directory names
+- API endpoints in docs correspond to route files in the module
 
 **Weak match (possible connection)**:
-- Keyword overlap between handbook page and code file contents
+- Keyword overlap between docs page and code file contents
 - Related but not identical terminology (e.g., "user management" in docs, `accounts/` in code)
 - Transitive connection through a shared dependency
 
 ## Step 3: Build the Correlation Matrix
 
-### Handbook to Code Table
+### Docs to Code Table
 
 ```
-| Handbook Page | Related Code Modules | Match Type | Confidence | Key References |
+| Docs Page | Related Code Modules | Match Type | Confidence | Key References |
 |---------------|---------------------|------------|------------|----------------|
 | auth-design.md | src/auth/, src/middleware/auth.py | Explicit | Strong | jwt.py, UserAuthService |
 | task-queue.md | src/workers/, src/queue/ | Explicit + Semantic | Strong | TaskWorker, CeleryConfig |
@@ -90,40 +90,60 @@ For each code module/directory, identify its domain:
 | data-model.md | src/models/, db/migrations/ | Explicit | Strong | User, Task, Project models |
 ```
 
-### Code to Handbook Table
+### Code to Docs Table
 
 ```
-| Code Module | Handbook Pages | Coverage | Missing Documentation |
+| Code Module | Docs Pages | Coverage | Missing Documentation |
 |-------------|---------------|----------|----------------------|
 | src/auth/ | auth-design.md, security.md | Full | None |
 | src/api/ | api-reference.md | Partial | Missing v2 endpoints |
 | src/workers/ | task-queue.md | Full | None |
-| src/utils/ | (none) | None | No handbook page covers utility functions |
+| src/utils/ | (none) | None | No docs page covers utility functions |
 | src/notifications/ | (none) | None | Entire notification system undocumented |
 ```
 
+### Multi-Project Matrix
+
+When analyzing multiple projects, add a Project column to both tables:
+
+```
+| Docs Page | Related Code Modules | Project | Match Type | Confidence | Key References |
+|-----------|---------------------|---------|------------|------------|----------------|
+| auth-design.md | src/auth/ | project-a | Explicit | Strong | jwt.py |
+| auth-design.md | lib/auth/ | project-b | Semantic | Medium | AuthProvider |
+```
+
+```
+| Code Module | Project | Docs Pages | Coverage | Missing Documentation |
+|-------------|---------|-----------|----------|----------------------|
+| src/auth/ | project-a | auth-design.md | Full | None |
+| lib/auth/ | project-b | auth-design.md | Partial | Missing OAuth flow |
+```
+
+A single docs page may correlate with modules in different projects. This is expected and highlights shared documentation.
+
 ## Step 4: Identify Gaps and Issues
 
-### Orphaned Code (no handbook coverage)
-List every code module/directory that has zero handbook matches at any confidence level. Prioritize by:
+### Orphaned Code (no docs coverage)
+List every code module/directory that has zero docs matches at any confidence level. Prioritize by:
 1. Module size (larger modules are bigger gaps)
 2. Module importance (entry points, core business logic)
 3. Module complexity (measured by file count, import count)
 
 ### Stale Documentation
-List every handbook page where:
+List every docs page where:
 - ALL explicit code references have been renamed, moved, or removed
 - The corresponding code module has changed significantly since the doc was last updated
 - The doc references features or APIs that no longer exist
 
 ### Contradictions
 Identify cases where:
-- Two handbook pages describe the same code area with conflicting information
+- Two docs pages describe the same code area with conflicting information
 - A diagram shows a different architecture than what's described in text
 - Different docs specify different versions, requirements, or interfaces for the same component
 
 ### Partial Implementations
-For design proposals/RFCs in the handbook:
+For design proposals/RFCs in the docs:
 - Compare the proposed design against actual code
 - List which aspects are implemented and which are missing
 - Flag proposals where implementation diverged significantly from the design
@@ -136,7 +156,7 @@ For each major code area, create a unified view:
 ### [Module Name]: [One-line description]
 
 **Code**: [what the code actually does, from reading every file]
-**Handbook says**: [what the documentation claims, from reading the design docs]
+**Docs say**: [what the documentation claims, from reading the design docs]
 **Alignment**: [Match / Partial match / Divergent / Undocumented]
 **Key differences**: [if any]
 **Alignment**: [Match / Partial match / Divergent / Undocumented]
@@ -147,8 +167,8 @@ This gives engineers a single place to see the full picture of each component --
 ## Verification Checklist
 
 Before finalizing the correlation matrix, verify:
-- [ ] Every handbook page has been mapped (even if to "no code match found")
-- [ ] Every top-level code directory has been checked for handbook coverage
+- [ ] Every docs page has been mapped (even if to "no code match found")
+- [ ] Every top-level code directory in each project has been checked for docs coverage
 - [ ] Code references have been verified against actual codebase
 - [ ] At least 10 explicit code references have been verified (exist/don't exist)
 - [ ] Semantic matches have been justified with specific keyword/topic overlap
