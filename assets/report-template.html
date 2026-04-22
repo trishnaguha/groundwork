@@ -284,6 +284,7 @@ details .details-body { padding: 12px 14px; }
   </div>
   <ul class="nav-links" id="nav-links">
     <li><a href="#summary">Executive Summary</a></li>
+    <!-- __NAV_PROJECT_SECTIONS__ -->
     <li><a href="#identity">1. Project Identity</a></li>
     <li><a href="#architecture">2. Architecture</a></li>
     <li><a href="#directory">3. Directory &amp; Modules</a></li>
@@ -295,9 +296,14 @@ details .details-body { padding: 12px 14px; }
     <li><a href="#testing">9. Testing</a></li>
     <li><a href="#cicd">10. Build &amp; CI/CD</a></li>
     <li><a href="#getting-started">11. Getting Started</a></li>
-    <li><a href="#handbook">12. Handbook Assessment</a></li>
+    <!-- __IF_DOCS__ -->
+    <li><a href="#handbook">12. Docs Assessment</a></li>
     <li><a href="#correlation">13. Correlation Matrix</a></li>
     <li><a href="#crossref">14. Cross-Reference</a></li>
+    <!-- __/IF_DOCS__ -->
+    <!-- __IF_MULTI__ -->
+    <li><a href="#overlap">13.5 Cross-Project Overlap</a></li>
+    <!-- __/IF_MULTI__ -->
     <li><a href="#verification">15. Verification</a></li>
     <li><a href="#git">16. Git History</a></li>
     <li><a href="#findings">17. Key Findings</a></li>
@@ -308,11 +314,12 @@ details .details-body { padding: 12px 14px; }
 
   <div class="report-header">
     <h1>Groundwork: __PROJECT_NAME__</h1>
-    <p class="subtitle">__CODE_REPO_PATH__ &mdash; __HANDBOOK_REPO_PATH__</p>
+    <p class="subtitle">__REPO_PATHS__<!-- __IF_DOCS__ --> &mdash; Docs: __DOCS_PATH__<!-- __/IF_DOCS__ --></p>
     <div class="stats-bar">
       <span class="stat"><strong>__FILES_COUNT__</strong> files read</span>
-      <span class="stat"><strong>__DOCS_COUNT__</strong> handbook pages</span>
-      <span class="stat"><strong>__IMAGES_COUNT__</strong> images analyzed</span>
+      <!-- __IF_DOCS__ --><span class="stat"><strong>__DOCS_COUNT__</strong> docs pages</span><!-- __/IF_DOCS__ -->
+      <!-- __IF_DOCS__ --><span class="stat"><strong>__IMAGES_COUNT__</strong> images analyzed</span><!-- __/IF_DOCS__ -->
+      <!-- __IF_MULTI__ --><span class="stat"><strong>__PROJECTS_COUNT__</strong> projects</span><!-- __/IF_MULTI__ -->
     </div>
   </div>
 
@@ -476,27 +483,12 @@ is_active = user.check_status()</pre>
     </div>
   </section>
 
-  <!-- ====== SECTION: HANDBOOK ASSESSMENT ====== -->
+  <!-- __IF_DOCS__ -->
+  <!-- ====== SECTION: DOCS ASSESSMENT ====== -->
   <section id="handbook">
-    <h2>12. Handbook Assessment <span class="collapse-icon">&#9660;</span></h2>
+    <h2>12. Docs Assessment <span class="collapse-icon">&#9660;</span></h2>
     <div class="section-body">
       <!-- __CONTENT_HANDBOOK__ -->
-      <!--
-        Use coverage bar:
-        <p><strong>Documentation Coverage</strong></p>
-        <div class="coverage-bar">
-          <div class="fill fill-green" style="width:60%"></div>
-          <div class="fill fill-yellow" style="width:25%"></div>
-          <div class="fill fill-red" style="width:15%"></div>
-        </div>
-        <p style="font-size:13px;color:var(--fg-dim)">60% full &bull; 25% partial &bull; 15% none</p>
-
-        Design proposal status badges:
-        <span class="badge badge-green">Implemented</span>
-        <span class="badge badge-yellow">Partial</span>
-        <span class="badge badge-blue">Pending</span>
-        <span class="badge badge-gray">Abandoned</span>
-      -->
     </div>
   </section>
 
@@ -505,31 +497,6 @@ is_active = user.check_status()</pre>
     <h2>13. Correlation Matrix <span class="collapse-icon">&#9660;</span></h2>
     <div class="section-body">
       <!-- __CONTENT_CORRELATION__ -->
-      <!--
-        Use filterable tables for both directions:
-        <h3>Handbook &rarr; Code</h3>
-        <div class="table-filter"><input type="text" data-filter-table="h2c-table" placeholder="Filter handbook pages..."></div>
-        <div class="table-wrap">
-          <table id="h2c-table">
-            <thead><tr><th>Handbook Page</th><th>Related Code</th><th>Match</th><th>Confidence</th><th>Refs Verified</th></tr></thead>
-            <tbody>
-              <tr><td>auth-design.md</td><td>src/auth/</td><td><span class="badge badge-blue">Explicit</span></td><td><span class="badge badge-green">Strong</span></td><td>5 of 5</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3>Code &rarr; Handbook</h3>
-        <div class="table-filter"><input type="text" data-filter-table="c2h-table" placeholder="Filter code modules..."></div>
-        <div class="table-wrap">
-          <table id="c2h-table">
-            <thead><tr><th>Code Module</th><th>Handbook Pages</th><th>Coverage</th><th>Gaps</th></tr></thead>
-            <tbody>
-              <tr><td>src/auth/</td><td>auth-design.md</td><td><span class="badge badge-green">Full</span></td><td>-</td></tr>
-              <tr><td>src/utils/</td><td>-</td><td><span class="badge badge-red">None</span></td><td>No handbook page</td></tr>
-            </tbody>
-          </table>
-        </div>
-      -->
     </div>
   </section>
 
@@ -538,14 +505,56 @@ is_active = user.check_status()</pre>
     <h2>14. Cross-Reference Findings <span class="collapse-icon">&#9660;</span></h2>
     <div class="section-body">
       <!-- __CONTENT_CROSSREF__ -->
+    </div>
+  </section>
+  <!-- __/IF_DOCS__ -->
+
+  <!-- __IF_MULTI__ -->
+  <!-- ====== SECTION: CROSS-PROJECT OVERLAP ====== -->
+  <section id="overlap">
+    <h2>13.5 Cross-Project User Story Overlap <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_OVERLAP__ -->
       <!--
-        Use callouts for different finding types:
-        <div class="callout callout-error"><strong>Orphaned Code:</strong> src/notifications/ has no handbook coverage.</div>
-        <div class="callout callout-warn"><strong>Stale Doc:</strong> api-v1.md references deprecated endpoint /api/v1/legacy.</div>
-        <div class="callout"><strong>Contradiction:</strong> auth-design.md says OAuth2, security.md says SAML.</div>
+        User Story Inventory:
+        <h3>User Stories by Project</h3>
+        <div class="table-filter"><input type="text" data-filter-table="story-table" placeholder="Filter stories..."></div>
+        <div class="table-wrap">
+          <table id="story-table">
+            <thead><tr><th>Project</th><th>Story</th><th>Evidence</th><th>Type</th></tr></thead>
+            <tbody>
+              <tr><td>project-a</td><td>User Authentication</td><td>src/auth/, /api/v1/auth/*</td><td><span class="badge badge-blue">API</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        Overlap Matrix:
+        <h3>Overlaps</h3>
+        <div class="table-filter"><input type="text" data-filter-table="overlap-table" placeholder="Filter overlaps..."></div>
+        <div class="table-wrap">
+          <table id="overlap-table">
+            <thead><tr><th>Story</th><th>Projects</th><th>Classification</th><th>Evidence</th><th>Recommendation</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>User Auth</td>
+                <td>project-a, project-b</td>
+                <td><span class="badge badge-yellow">Duplicate</span></td>
+                <td>Independent JWT implementations</td>
+                <td>Extract shared auth library</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        Classification badges:
+        <span class="badge badge-green">Shared</span>
+        <span class="badge badge-yellow">Duplicate</span>
+        <span class="badge badge-blue">Complementary</span>
+        <span class="badge badge-red">Conflict</span>
       -->
     </div>
   </section>
+  <!-- __/IF_MULTI__ -->
 
   <!-- ====== SECTION: VERIFICATION ====== -->
   <section id="verification">
