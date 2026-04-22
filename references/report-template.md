@@ -7,8 +7,12 @@ Use this exact structure for the final analysis report. Fill in every section ba
 ```markdown
 # Groundwork: {project_name}
 
-_Generated on {date} | Code repo: {code_repo_path} | Handbook: {handbook_repo_path}_
-_Files analyzed: {total_files_read} source files, {handbook_docs_count} handbook pages, {images_count} images_
+{IF MULTI_PROJECT: use "Multi-Project Analysis" as project_name}
+
+_Generated on {date}_
+_Projects analyzed: {project_paths}_
+{IF DOCS_PATH}_Docs: {docs_path}_{/IF}
+_Files analyzed: {total_files_read} source files{IF DOCS_PATH}, {docs_count} docs pages, {images_count} images{/IF}_
 
 ---
 
@@ -17,6 +21,24 @@ _Files analyzed: {total_files_read} source files, {handbook_docs_count} handbook
 {2-3 paragraphs summarizing: what the project is, its architecture at a glance, the tech stack, the state of documentation, and the most important findings. Highlight the biggest code-to-handbook discrepancies.}
 
 ---
+
+{IF MULTI_PROJECT}
+## Per-Project Analysis
+
+Repeat sections 1-{11 or 14} for each project under a project wrapper:
+
+### Project: {project_name} ({project_path})
+
+{sections 1 through 11 for this project}
+{IF DOCS_PATH}{sections 12 through 14 for this project}{/IF}
+
+---
+{/IF}
+
+{IF NOT MULTI_PROJECT}
+{sections 1 through 11}
+{IF DOCS_PATH}{sections 12 through 14}{/IF}
+{/IF}
 
 ## 1. Project Identity
 
@@ -273,7 +295,41 @@ handbook-repo/
 
 ---
 
+{IF MULTI_PROJECT}
+
+---
+
+## 13.5 Cross-Project User Story Overlap
+
+### User Story Inventory
+
+{For each project, list inferred user stories}
+
+| Project | Story Name | Evidence | Type |
+|---------|-----------|----------|------|
+| ... | ... | ... | API/UI/CLI/Business Logic |
+
+### Overlap Matrix
+
+| Story | Projects | Classification | Evidence | Recommendation |
+|-------|----------|---------------|----------|----------------|
+| ... | project-a, project-b | Shared/Duplicate/Complementary/Conflict | ... | ... |
+
+### Overlap Classification Detail
+
+{For each overlap, a 2-3 sentence explanation with:}
+- What the overlap is
+- Evidence in each project (specific files, endpoints, modules)
+- Why it's classified the way it is
+- Recommended action
+
+{/IF}
+
 ## 15. Verification Summary
+
+{IF MULTI_PROJECT}
+_Verification covers all {num_projects} projects{IF DOCS_PATH} and docs{/IF}. Claims are tagged with their source project._
+{/IF}
 
 ### Verification Gate Results
 | Metric | Count |
@@ -307,6 +363,11 @@ handbook-repo/
 - **Hot Areas**: {most frequently changed files/directories in last 90 days}
 - **Branching Strategy**: {observed pattern}
 
+{IF MULTI_PROJECT}
+### Per-Project Git History
+{Repeat git history subsection for each project, side by side}
+{/IF}
+
 ---
 
 ## 17. Key Findings for New Engineers
@@ -320,4 +381,10 @@ handbook-repo/
 
 ### Where to Start Reading
 - {Recommended reading order for someone new to the project}
+
+{IF MULTI_PROJECT}
+### Cross-Project Insights
+- {Findings that span multiple projects}
+- {Key overlaps and their implications}
+{/IF}
 ```
