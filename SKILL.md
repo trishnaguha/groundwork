@@ -51,65 +51,81 @@ Run these steps directly (not in sub-agents) to produce context that all subsequ
 
 ### 1.1 Validate Inputs
 
-Verify `$0` exists and is a directory. Verify `$1` exists and is a directory. Within `$1`, locate the directory named **"The Ansible Engineering Handbook"**. If not found, output an error: "Could not find 'The Ansible Engineering Handbook' directory in the handbook repo. Expected at: $1/The Ansible Engineering Handbook/". Store the handbook docs path as `HANDBOOK_PATH="$1/The Ansible Engineering Handbook"`.
+For each path in `PROJECTS`, verify it exists and is a directory. If any path is invalid, output an error and stop.
 
-### 1.2 Detect Tech Stack
+If `DOCS_PATH` is set:
+- Verify `DOCS_PATH` exists and is a directory.
+- If `DOCS_MODE=handbook`, locate the directory named **"The Ansible Engineering Handbook"** within `DOCS_PATH`. If found, set `HANDBOOK_PATH="$DOCS_PATH/The Ansible Engineering Handbook"` and use that as the effective docs path for analysis. If not found, emit a warning: "Could not find 'The Ansible Engineering Handbook' directory in $DOCS_PATH. Using $DOCS_PATH directly as documentation directory." Set `DOCS_MODE=generic`.
 
-Run the detection script:
+### 1.2 Per-Project Discovery
+
+For each project in `PROJECTS`, run the following (parallelize across projects where possible):
+
+#### 1.2.1 Detect Tech Stack
+
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/detect-stack.sh" "$0"
+bash "${CLAUDE_SKILL_DIR}/scripts/detect-stack.sh" "$PROJECT_PATH"
 ```
 
-### 1.3 Gather Repo Statistics
+#### 1.2.2 Gather Repo Statistics
 
-Run stats for both repos in parallel:
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/repo-stats.sh" "$0"
-bash "${CLAUDE_SKILL_DIR}/scripts/repo-stats.sh" "$1"
+bash "${CLAUDE_SKILL_DIR}/scripts/repo-stats.sh" "$PROJECT_PATH"
 ```
 
-### 1.4 Map Directory Structures
+#### 1.2.3 Map Directory Structure
 
-Use Bash to list directory structures for both repos, excluding artifact directories (.git, node_modules, vendor, target, __pycache__, dist, build, .next, venv, .venv).
+Use Bash to list the directory structure, excluding artifact directories (.git, node_modules, vendor, target, __pycache__, dist, build, .next, venv, .venv).
 
-### 1.5 Discover Images
+#### 1.2.4 Read Orientation Files
 
-Run the image finder on the handbook:
+Read key orientation files from the project if they exist: README.md, CONTRIBUTING.md, ARCHITECTURE.md, and the primary language manifest (package.json, Cargo.toml, go.mod, pyproject.toml, pom.xml, etc.).
+
+### 1.3 Docs Discovery (only if DOCS_PATH is set)
+
+Skip this entire subsection if `DOCS_PATH` is null.
+
+#### 1.3.1 Gather Docs Repo Statistics
+
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/find-images.sh" "$HANDBOOK_PATH"
+bash "${CLAUDE_SKILL_DIR}/scripts/repo-stats.sh" "$DOCS_PATH"
 ```
 
-### 1.6 Read File Strategy
+#### 1.3.2 Discover Images
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/find-images.sh" "$DOCS_PATH"
+```
+
+If `DOCS_MODE=handbook` and `HANDBOOK_PATH` is set, run on `HANDBOOK_PATH` instead.
+
+### 1.4 Read File Strategy
 
 Read `${CLAUDE_SKILL_DIR}/references/file-reading-strategy.md` to understand what to read vs skip.
 
-### 1.7 Read Orientation Files
-
-Read key orientation files from the code repo if they exist: README.md, CONTRIBUTING.md, ARCHITECTURE.md, and the primary language manifest (package.json, Cargo.toml, go.mod, pyproject.toml, pom.xml, etc.).
-
-### 1.8 Produce Discovery Summary
+### 1.5 Produce Discovery Summary
 
 Compile all findings into a Discovery Summary containing:
-- Detected tech stack and framework
-- Directory structure sketches of both repos
-- Image manifest from handbook
-- Entry-point candidates in the code repo
+- Per-project data: detected tech stack, directory structure, repo stats, orientation notes
+- Docs data (if DOCS_PATH is set): structure, stats, image manifest
 - File inventory for allocation to Phase 2 agents
+- Flags: `DOCS_PATH`, `DOCS_MODE`, `MULTI_PROJECT`, `FOCUS`
 
-## Phase 2: Deep Analysis (4 Parallel Sub-Agents)
+## Phase 2: Deep Analysis (Parallel Sub-Agents)
 
-Launch 4 Agent sub-agents concurrently in a single message. Pass each agent the Discovery Summary from Phase 1. **Critical: agents must read ALL files in their domain, not samples.**
+Launch Agent sub-agents concurrently in a single message. Pass each agent the Discovery Summary from Phase 1. **Critical: agents must read ALL files in their domain, not samples.**
 
-### Agent A: Architecture & Structure
+### Agent Allocation
+
+For each project in `PROJECTS`, launch 4 agents (A, B, C, D). All agents across all projects run in parallel in a single message. For N projects, this means 4×N agents.
+
+When `DOCS_PATH` is null, agents A and D use their code-only variants (handbook instructions are omitted). When `DOCS_PATH` is set, agents A and D include docs analysis instructions.
+
+### Agent A: Architecture & Structure (per project)
 
 Provide Agent A with the Discovery Summary and these instructions:
 
-> Analyze the architecture of the code repository at `$0` and the engineering handbook at `$HANDBOOK_PATH`.
->
-> **Handbook analysis (read EVERY file):**
-> - Read ALL markdown files in `$HANDBOOK_PATH` -- every architecture doc, system design plan, and implementation proposal, in full
-> - Read ALL images in the handbook using the Read tool (it renders PNG/JPG visually)
-> - For each doc, note: title, topic, what code areas it describes, key design decisions
+> Analyze the architecture of the code repository at `$PROJECT_PATH`.
 >
 > **Code architecture analysis (read ALL files):**
 > - Read `${CLAUDE_SKILL_DIR}/references/file-reading-strategy.md` for what to read vs skip
@@ -118,19 +134,26 @@ Provide Agent A with the Discovery Summary and these instructions:
 > - Identify architectural boundaries: layers, modules, service boundaries
 > - Map import/dependency graphs across the full codebase
 > - Identify communication patterns: HTTP, queues, shared DB, events, gRPC
-> - Read ADRs (Architecture Decision Records) if they exist in either repo
+> - Read ADRs (Architecture Decision Records) if they exist in the code repo
+>
+> {IF DOCS_PATH is set}
+> **Documentation analysis (read EVERY file):**
+> - Read ALL markdown files in `$DOCS_PATH` -- every architecture doc, system design plan, and implementation proposal, in full
+> - Read ALL images in the docs directory using the Read tool (it renders PNG/JPG visually)
+> - For each doc, note: title, topic, what code areas it describes, key design decisions
 >
 > **Cross-reference:**
-> - For each handbook diagram/doc, compare what it describes vs what the code actually implements
+> - For each diagram/doc, compare what it describes vs what the code at `$PROJECT_PATH` actually implements
 > - Note divergences, missing components, extra components not in docs
+> {/IF}
 >
-> Output a structured Architecture Summary with: component map, layer structure, execution flows, and diagram-to-code cross-reference.
+> Output a structured Architecture Summary with: component map, layer structure, execution flows{IF DOCS_PATH is set}, and diagram-to-code cross-reference{/IF}.
 
-### Agent B: Code Patterns & Conventions
+### Agent B: Code Patterns & Conventions (per project)
 
 Provide Agent B with the Discovery Summary and these instructions:
 
-> Analyze coding patterns and conventions in the code repository at `$0`.
+> Analyze coding patterns and conventions in the code repository at `$PROJECT_PATH`.
 >
 > - Read `${CLAUDE_SKILL_DIR}/references/code-analysis-checklist.md` for the full analysis heuristics
 > - Read `${CLAUDE_SKILL_DIR}/references/file-reading-strategy.md` for what to read vs skip
@@ -146,11 +169,11 @@ Provide Agent B with the Discovery Summary and these instructions:
 >
 > Output a Comprehensive Coding Conventions Summary with real code examples from the codebase.
 
-### Agent C: API Surface, Data Models & Dependencies
+### Agent C: API Surface, Data Models & Dependencies (per project)
 
 Provide Agent C with the Discovery Summary and these instructions:
 
-> Analyze the complete API surface, data models, and dependencies in the code repository at `$0`. Also read relevant API docs from the handbook at `$HANDBOOK_PATH`.
+> Analyze the complete API surface, data models, and dependencies in the code repository at `$PROJECT_PATH`.
 >
 > - Read `${CLAUDE_SKILL_DIR}/references/file-reading-strategy.md` for what to read vs skip
 > - Read ALL route/endpoint definition files (every controller, handler, route file)
@@ -160,56 +183,80 @@ Provide Agent C with the Discovery Summary and these instructions:
 > - Identify the full persistence layer by reading config and connection code
 > - Analyze the complete dependency manifest: every dependency, categorized (core framework, utilities, dev tools, testing, deployment)
 > - Read ALL external service integration code (third-party API clients, SDK usage)
-> - Read any API documentation from the handbook
 > - **Git analysis**: Run `git log --oneline --since='6 months ago' -- <api-paths>` to track how the API surface and data models have evolved recently
+>
+> {IF DOCS_PATH is set}
+> - Read any API documentation from the docs directory at `$DOCS_PATH`
+> {/IF}
 >
 > Output a Complete API & Data Summary with every endpoint, every data model, full dependency analysis, and evolution history.
 
-### Agent D: Documentation, DevOps & Code Git History
+### Agent D: Documentation, DevOps & Code Git History (per project)
 
 Provide Agent D with the Discovery Summary and these instructions:
 
-> Analyze documentation quality, DevOps setup, and code repo git history for the code repository at `$0` and the handbook repository at `$1`.
+> Analyze DevOps setup and code repo git history for the code repository at `$PROJECT_PATH`.
 >
-> - Read `${CLAUDE_SKILL_DIR}/references/docs-analysis-checklist.md` for handbook quality heuristics
 > - Read `${CLAUDE_SKILL_DIR}/references/file-reading-strategy.md` for what to read vs skip
-> - **Read ALL remaining handbook files** not covered by Agent A (operational docs, runbooks, onboarding guides, troubleshooting docs outside "The Ansible Engineering Handbook" directory)
-> - Read ALL documentation images not handled by Agent A
 > - Read ALL CI/CD configuration files (GitHub Actions workflows, Jenkinsfile, .gitlab-ci.yml, Makefile, scripts/)
 > - Read ALL containerization files (every Dockerfile, docker-compose.yml, K8s manifests, Helm charts)
 > - Analyze complete developer setup: prerequisites, setup scripts, environment variables
 >
-> **Code repo git history analysis (`$0`):**
+> {IF DOCS_PATH is set}
+> - Read `${CLAUDE_SKILL_DIR}/references/docs-analysis-checklist.md` for documentation quality heuristics
+> - **Read ALL remaining docs files** not covered by Agent A (operational docs, runbooks, onboarding guides, troubleshooting docs)
+> - Read ALL documentation images not handled by Agent A
+> {/IF}
+>
+> **Code repo git history analysis (`$PROJECT_PATH`):**
 > - `git log --oneline -50` for recent commits
 > - `git shortlog -sn --no-merges` for contributor analysis
 > - `git log --numstat --since='90 days ago'` for recent areas of active development
 > - Branching strategy and merge patterns
 >
-> Synthesize a "Getting Started" guide from code setup files + handbook onboarding docs.
+> Synthesize a "Getting Started" guide from code setup files{IF DOCS_PATH is set} and docs onboarding content{/IF}.
 >
-> Output a Documentation & DevOps Summary with code repo git analysis.
+> Output a DevOps & Git Summary with code repo git analysis.
 
-## Phase 3: Correlation & Cross-Reference
+## Phase 3: Correlation & Cross-Reference (only if DOCS_PATH is set)
 
-After all 4 agents complete, this is the most critical phase. Read `${CLAUDE_SKILL_DIR}/references/correlation-guide.md` for the detailed methodology.
+**Skip this entire phase if `DOCS_PATH` is null.** Proceed directly to Phase 3.5 (if multi-project) or Phase 4 (if single project).
+
+After all Phase 2 agents complete, this is the most critical phase when docs are available. Read `${CLAUDE_SKILL_DIR}/references/correlation-guide.md` for the detailed methodology.
 
 ### 3.1 Build the Correlation Matrix
 
-Create a bidirectional map connecting every handbook page to its corresponding code areas:
+Create a bidirectional map connecting every docs page to its corresponding code areas.
 
-**Handbook to Code mapping**: For each handbook page, extract all references to code constructs (file paths, module names, class names, function names, service names, API endpoints, database table names, config keys). Verify each reference exists in the actual code using Grep. Produce a table:
+**Docs to Code mapping**: For each docs page, extract all references to code constructs (file paths, module names, class names, function names, service names, API endpoints, database table names, config keys). Verify each reference exists in the actual code using Grep.
 
-```
-| Handbook Page | Referenced Code | Exists? |
-```
-
-**Code to Handbook mapping**: For each code module/directory, list all handbook pages that reference it. Produce a table:
+When `MULTI_PROJECT` is true, check references against ALL projects and include a Project column:
 
 ```
-| Code Module | Handbook Pages | Coverage Level | Gaps |
+| Docs Page | Referenced Code | Project | Exists? |
 ```
 
-**Semantic correlation**: Match handbook pages to code areas by topic/domain keywords even when explicit references are absent. If a handbook page discusses "task execution" and the code has a `task_executor/` module, correlate them.
+When single project, omit the Project column:
+
+```
+| Docs Page | Referenced Code | Exists? |
+```
+
+**Code to Docs mapping**: For each code module/directory in each project, list all docs pages that reference it.
+
+When `MULTI_PROJECT` is true:
+
+```
+| Code Module | Project | Docs Pages | Coverage Level | Gaps |
+```
+
+When single project, omit the Project column:
+
+```
+| Code Module | Docs Pages | Coverage Level | Gaps |
+```
+
+**Semantic correlation**: Match docs pages to code areas by topic/domain keywords even when explicit references are absent. If a docs page discusses "task execution" and a project has a `task_executor/` module, correlate them.
 
 ### 3.2 Deep Cross-Reference Analysis
 
@@ -217,89 +264,161 @@ Using the correlation matrix, analyze:
 - Architecture diagrams vs actual code structure
 - API docs vs actual endpoints
 - Getting-started docs vs actual setup requirements
-- Code modules with **zero handbook coverage** (orphaned code)
-- Handbook pages referencing **nonexistent code** (stale docs)
+- Code modules with **zero docs coverage** (orphaned code)
+- Docs pages referencing **nonexistent code** (stale docs)
 - **Design proposals**: implemented vs pending vs abandoned
 - **Major code components** with no design doc explaining the "why"
-- **Consistency**: Do different handbook pages describe the same code area consistently or contradict each other?
+- **Consistency**: Do different docs pages describe the same code area consistently or contradict each other?
+
+When `MULTI_PROJECT` is true, also analyze:
+- Which docs pages are relevant to multiple projects
+- Whether coverage differs significantly across projects for the same docs
 
 ### 3.3 Produce Connected Summary
 
-- Aggregate the 4 agent summaries
+- Aggregate the Phase 2 agent summaries (per project)
 - Overlay the correlation matrix
-- For each major code area, produce a mini-summary combining: what the code does + what the handbook says + where they align or diverge
+- For each major code area in each project, produce a mini-summary combining: what the code does + what the docs say + where they align or diverge
 - Identify top 10 key findings for new engineers
 
-### 3.4 Verification Against Source of Truth
+## Phase 3.5: Cross-Project User Story Overlap (only if MULTI_PROJECT is true)
+
+**Skip this phase if only one project is being analyzed.**
+
+This phase identifies overlapping user stories -- features or capabilities that span or are duplicated across multiple projects.
+
+### 3.5.1 Launch Cross-Project Agent
+
+Launch a single **Cross-Project Agent** that receives all per-project agent summaries from Phase 2 and correlation data from Phase 3 (if available). Provide these instructions:
+
+> Analyze user story overlap across the following projects: `$PROJECTS` (list all project paths).
+>
+> **Step 1 -- Infer user stories per project:**
+>
+> For each project, identify user-facing capabilities by analyzing:
+> - From code: API endpoints and their resource domains, UI components and pages, CLI commands, business logic modules, service names, README feature descriptions
+> - {IF DOCS_PATH is set} From docs at `$DOCS_PATH`: user stories, requirements docs, feature descriptions, design proposals {/IF}
+>
+> Produce a list of inferred user stories per project. Each user story should have:
+> - **Story name**: A concise name for the capability (e.g., "User Authentication", "Task Scheduling", "Report Generation")
+> - **Evidence**: The files, endpoints, modules, or docs that support this inference
+> - **Project**: Which project this story belongs to
+>
+> **Step 2 -- Find overlaps:**
+>
+> Compare user story lists across all projects. Match by:
+> - Identical or similar feature/capability names
+> - Overlapping API surface (same endpoints, resources, or URL patterns)
+> - Shared business domain concepts (same entity names, similar data models)
+> - Similar module structures serving the same purpose
+>
+> Classify each overlap:
+> - **Shared dependency**: Projects intentionally share this capability (e.g., both call a common auth service)
+> - **Duplicate implementation**: Same user story implemented independently in both projects
+> - **Complementary**: Projects implement different parts of the same user journey (e.g., one handles creation, another handles reporting)
+> - **Potential conflict**: Overlapping stories with divergent implementations that could cause inconsistency
+>
+> **Step 3 -- Evidence gathering:**
+>
+> For each identified overlap, grep across all projects for concrete evidence:
+> - Shared API calls or client code pointing to the same service
+> - Common data models or schema definitions
+> - Similar function signatures or class hierarchies
+> - Matching route patterns or endpoint paths
+> - {IF DOCS_PATH is set} Check whether the overlap is documented in the docs or appears to be accidental {/IF}
+>
+> **Output a Cross-Project Overlap Summary containing:**
+> - Per-project user story inventory (table: story name, evidence summary, project)
+> - Overlap matrix (table: story name, projects involved, overlap type, evidence, classification)
+> - Recommendations: actionable suggestions for each overlap (deduplicate into shared library, document the intentional overlap, extract common service, resolve conflicting implementations, etc.)
+
+### 3.6 Verification Against Source of Truth
 
 **This is a mandatory gate. No report is generated until verification passes.**
 
 Read `${CLAUDE_SKILL_DIR}/references/verification-checklist.md` for the detailed verification procedures.
 
-Every factual claim from the 4 agent summaries and the correlation matrix must be traced back to an actual file in one of the two repos. Launch a **Verification Agent** with these instructions:
+Every factual claim from the Phase 2 agent summaries{IF DOCS_PATH is set}, the correlation matrix,{/IF}{IF MULTI_PROJECT} and the cross-project overlap analysis{/IF} must be traced back to an actual file in the repos. Launch a **Verification Agent** with these instructions:
 
 > Verify every factual claim in the analysis against the actual source files. Read `${CLAUDE_SKILL_DIR}/references/verification-checklist.md` for procedures.
 >
-> **File existence:** For every file path cited anywhere in the analysis, run Glob to confirm it exists. For every handbook page referenced, confirm it exists in `The Ansible Engineering Handbook/`. If a file is not found, flag it for removal.
+> **File existence:** For every file path cited anywhere in the analysis, run Glob to confirm it exists in the appropriate project repo. If a file is not found, flag it for removal.
 >
 > **Code snippets:** For every code example in the conventions section, Grep for that exact text in the cited file. If the snippet doesn't match, re-read the file and correct or remove it.
 >
-> **API endpoints:** For every endpoint in the API surface table, Grep for the route pattern in the code repo. Confirm method, path, and handler all exist.
+> **API endpoints:** For every endpoint in the API surface table, Grep for the route pattern in the relevant project's code repo. Confirm method, path, and handler all exist.
 >
-> **Dependencies:** For every dependency listed, Read the package manifest and confirm the name and version match.
+> **Dependencies:** For every dependency listed, Read the package manifest in the relevant project and confirm the name and version match.
 >
 > **Data models:** For every model/schema described, Read the model file and confirm fields and relationships exist.
 >
-> **Handbook claims:** For every claim about what a handbook page says, Read that page and confirm the claim is accurate. For correlation matrix entries, confirm the handbook page actually references or describes the correlated code area.
+> {IF DOCS_PATH is set}
+> **Documentation claims:** For every claim about what a docs page says, Read that page and confirm the claim is accurate. For correlation matrix entries, confirm the docs page actually references or describes the correlated code area.
+> {/IF}
 >
-> **Git statistics:** Re-run key git commands (commit count, contributor count, recent velocity) and compare with reported numbers. Replace any mismatches with the verified numbers.
+> **Git statistics:** Re-run key git commands (commit count, contributor count, recent velocity) for each project repo and compare with reported numbers. Replace any mismatches with the verified numbers.
 >
-> **Architecture claims:** For claims like "Service A calls Service B via HTTP", Grep for the actual HTTP call in code.
+> **Architecture claims:** For claims like "Service A calls Service B via HTTP", Grep for the actual HTTP call in the relevant project's code.
 >
+> {IF DOCS_PATH is set}
 > **Diagram analysis:** For claims about what diagrams depict, re-read the image to confirm.
 >
 > **Design proposal status:** For proposals marked "implemented", verify the claimed code exists via Glob + Grep.
+> {/IF}
+>
+> {IF MULTI_PROJECT}
+> **Cross-project overlap claims:** For each overlap identified in Phase 3.5, verify:
+> - The user story evidence exists in both projects (grep for the cited files, endpoints, or modules)
+> - The overlap classification is accurate (e.g., if classified as "duplicate implementation", confirm both projects actually implement it independently)
+> {/IF}
 >
 > For each claim, record: PASSED (confirmed), CORRECTED (fixed minor inaccuracy), REMOVED (unverifiable), or FLAGGED (needs manual review).
 >
 > **Auto-correct:** If a file path has a typo but a similar file exists, correct it. If a snippet is slightly off, replace with actual text. If a git stat is wrong, replace with the re-verified number. If a claim cannot be verified at all, remove it from the analysis rather than include unverified data.
 >
-> Output a Verification Summary:
-> ```
-> TOTAL CLAIMS CHECKED: X
-> PASSED: N (confirmed against source)
-> CORRECTED: N (auto-fixed minor inaccuracies)
-> REMOVED: N (unverifiable, excluded from report)
-> FLAGGED: N (need manual review)
-> ```
-> Also output the corrected versions of any claims that were fixed, and the list of claims that were removed.
+> Output a Verification Summary with counts of PASSED, CORRECTED, REMOVED, FLAGGED and the details of each.
 
 After the verification agent completes, merge its corrections into the analysis data. Remove all unverified claims. The verification summary will be included in the final report.
 
-### 3.5 Generate Final Report (Markdown)
+### 3.7 Generate Final Report (Markdown)
 
-Read `${CLAUDE_SKILL_DIR}/references/report-template.md` for the exact output structure. Produce the complete report with all 17 sections in the conversation as markdown, including the correlation matrix and verification summary as core artifacts. Only include data that passed verification.
+Read `${CLAUDE_SKILL_DIR}/references/report-template.md` for the output structure.
 
-### 3.6 Generate HTML Report
+**Single project, no docs:** Produce sections 1-11, 15-17. Omit sections 12 (Handbook Assessment), 13 (Correlation Matrix), and 14 (Cross-Reference Findings). Use the flat report structure (no project wrapper).
+
+**Single project, with docs:** Produce all sections 1-17. Use the flat report structure (current behavior).
+
+**Multiple projects, no docs:** Produce a multi-project report:
+- Executive Summary covering all projects and key overlaps
+- For each project: sections 1-11 under a "## Project: {project_name}" wrapper
+- Section 13.5: Cross-Project User Story Overlap
+- Sections 15-17 with aggregated/unified data
+
+**Multiple projects, with docs:** Produce a multi-project report:
+- Executive Summary covering all projects, correlations, and overlaps
+- For each project: sections 1-14 under a "## Project: {project_name}" wrapper
+- Section 13.5: Cross-Project User Story Overlap
+- Sections 15-17 with aggregated/unified data
+
+Only include data that passed verification.
+
+### 3.8 Generate HTML Report
 
 After producing the markdown report, also generate an interactive HTML version:
 
 1. Read the HTML template at `${CLAUDE_SKILL_DIR}/assets/report-template.html`
 2. Create a filled-in copy of the template with all analysis data. Replace:
-   - `__PROJECT_NAME__` with the project name (throughout)
+   - `__PROJECT_NAME__` with the project name (or "Multi-Project Analysis" if multiple projects)
    - `__DATE__` with today's date
-   - `__CODE_REPO_PATH__` and `__HANDBOOK_REPO_PATH__` with actual paths
-   - `__FILES_COUNT__`, `__DOCS_COUNT__`, `__IMAGES_COUNT__` with actual counts
+   - `__REPO_PATHS__` with the project paths (replaces `__CODE_REPO_PATH__`)
+   - `__DOCS_PATH__` with the docs path (or "N/A" if no docs; replaces `__HANDBOOK_REPO_PATH__`)
+   - `__FILES_COUNT__`, `__DOCS_COUNT__`, `__IMAGES_COUNT__` with actual counts (DOCS_COUNT and IMAGES_COUNT are 0 if no docs)
    - Each `<!-- __CONTENT_xxx__ -->` comment with the actual HTML content for that section
+   - For multi-project: populate `<!-- __CONTENT_PROJECTS__ -->` with per-project section HTML
+   - For multi-project: populate `<!-- __CONTENT_OVERLAP__ -->` with cross-project overlap HTML
+   - Omit docs-related sections from sidebar and body when `DOCS_PATH` is null
 
-3. Use the template's built-in CSS classes for rich rendering:
-   - `.kv-list` + `.kv-row` + `.kv-key`/`.kv-val` for key-value pairs (Project Identity)
-   - `.table-wrap` + `<table>` for data tables. Add `data-filter-table="tableId"` on filter inputs for searchable tables (API endpoints, correlation matrices)
-   - `.badge` + `.badge-green`/`.badge-yellow`/`.badge-red`/`.badge-blue`/`.badge-gray` for status indicators
-   - `<pre>` for code snippets and directory trees
-   - `<details>` + `<summary>` + `.details-body` for collapsible module descriptions and diagram analyses
-   - `.callout`, `.callout-warn`, `.callout-error` for findings and divergences
-   - `.coverage-bar` with `.fill-green`/`.fill-yellow`/`.fill-red` for documentation coverage visualization
+3. Use the template's built-in CSS classes for rich rendering (same as current behavior).
 
 4. Write the HTML file to `/tmp/groundwork-report.html`
 5. Open it in the browser: `open /tmp/groundwork-report.html`
@@ -310,17 +429,42 @@ After producing the markdown report, also generate an interactive HTML version:
 After producing both reports, end with this message:
 
 ---
-**Groundwork complete.** Read {N} source files across {M} modules in the code repo and {P} documents in The Ansible Engineering Handbook. {V} claims verified against source files ({pass_rate}% pass rate).
+
+**Single project, no docs:**
+
+**Groundwork complete.** Read {N} source files across {M} modules. {V} claims verified against source files ({pass_rate}% pass rate).
 
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
-Ask follow-up questions about any aspect of this project:
+---
+
+**Single project, with docs:**
+
+**Groundwork complete.** Read {N} source files across {M} modules and {P} documents in the docs directory. {V} claims verified against source files ({pass_rate}% pass rate).
+
+HTML report: `/tmp/groundwork-report.html` (opened in browser)
+
+---
+
+**Multiple projects:**
+
+**Groundwork complete.** Analyzed {num_projects} projects: {project_names}. Read {N} total source files{IF DOCS_PATH is set} and {P} documents{/IF}. Identified {overlap_count} user story overlaps. {V} claims verified ({pass_rate}% pass rate).
+
+HTML report: `/tmp/groundwork-report.html` (opened in browser)
+
+---
+
+Follow-up prompts:
 - "How is [feature] implemented?"
 - "Walk me through the [X] execution flow"
-- "What does the handbook say about [component] vs what the code does?"
-- "Which handbook pages are most out of date?"
+{IF DOCS_PATH is set}
+- "What does the docs say about [component] vs what the code does?"
+- "Which docs pages are most out of date?"
+{/IF}
+{IF MULTI_PROJECT}
+- "Show me the overlap between [project-a] and [project-b] for [feature]"
+- "Which user stories are duplicated across projects?"
+{/IF}
 - "What would I need to do to add a new [endpoint/feature/module]?"
-- "Show me the correlation between [handbook page] and [code module]"
 
 The full analysis context is available for deep follow-ups.
----
