@@ -1,6 +1,6 @@
 # Verification Checklist
 
-Every factual claim in the analysis must be verified against the actual source files in the code repo or handbook repo before it appears in the final report. This checklist defines the verification procedure for each claim type.
+Every factual claim in the analysis must be verified against the actual source files in the project repo(s) and docs directory (if provided) before it appears in the final report. When analyzing multiple projects, verify claims against the correct project repo. This checklist defines the verification procedure for each claim type.
 
 ## 1. File Existence
 
@@ -17,6 +17,8 @@ Claim: "src/auth/jwt.py handles token validation"
 Verify: Glob for src/auth/jwt.py in code repo
 Result: PASSED (file exists) or REMOVED (file not found)
 ```
+
+**Multi-project note:** When verifying file paths, ensure you check within the correct project repo. A path `src/auth/jwt.py` must be verified against the specific project it was cited in, not any arbitrary project.
 
 ## 2. Code Snippets
 
@@ -86,12 +88,12 @@ Verify: Read src/models/user.py, check field definitions
 Result: PASSED or CORRECTED (field is "password_hash" not "hashed_password")
 ```
 
-## 6. Handbook Content Claims
+## 6. Documentation Content Claims (only when docs are provided)
 
-**What to check:** Every claim about what a handbook page says or describes.
+**What to check:** Every claim about what a docs page says or describes. Skip this entire section if no docs directory was provided.
 
 **Procedure:**
-- Read the handbook page
+- Read the docs page
 - Confirm the claim accurately represents the content
 - For correlation matrix entries: confirm the page actually discusses the correlated code area
 
@@ -136,6 +138,8 @@ Result: PASSED (found redis.publish calls) or REMOVED (no evidence found)
 
 ## 9. Diagram Analysis
 
+**Note:** Skip if no docs directory was provided.
+
 **What to check:** Claims about what architecture diagrams depict.
 
 **Procedure:**
@@ -151,6 +155,8 @@ Result: PASSED or CORRECTED (actually shows 4 services)
 ```
 
 ## 10. Design Proposal Status
+
+**Note:** Skip if no docs directory was provided.
 
 **What to check:** Whether proposals marked as "implemented" have corresponding code.
 
@@ -168,12 +174,14 @@ Result: PASSED or CORRECTED to "Partial" (OAuth2 provider not implemented yet)
 
 ## 11. Correlation Matrix Entries
 
-**What to check:** Every handbook-to-code correlation pair.
+**Note:** Skip if no docs directory was provided. When multiple projects are analyzed, also verify the Project column is correct for each entry.
+
+**What to check:** Every docs-to-code correlation pair.
 
 **Procedure:**
-- Confirm the handbook page exists
+- Confirm the docs page exists
 - Confirm the code module/file exists
-- For "Explicit" matches: confirm the handbook page actually contains a reference to the code path
+- For "Explicit" matches: confirm the docs page actually contains a reference to the code path
 - For "Semantic" matches: confirm the topics genuinely overlap (not a false match)
 
 **Examples:**
@@ -195,6 +203,26 @@ REMOVED: N (unverifiable, list removals below)
 FLAGGED: N (need manual review, list flagged items below)
 PASS RATE: X%
 CONFIDENCE: High (>95%) / Medium (85-95%) / Low (<85%)
+```
+
+## 12. Cross-Project Overlap Claims (only for multi-project analysis)
+
+**What to check:** Every user story overlap identified in Phase 3.5.
+
+**Procedure:**
+- For each overlap, verify the user story evidence exists in both cited projects
+- Grep for the cited files, endpoints, modules, or function names in each project
+- Confirm the classification is accurate:
+  - "Shared dependency": verify both projects reference the same external service/library
+  - "Duplicate implementation": verify both projects contain independent implementations
+  - "Complementary": verify the projects implement different aspects of the same story
+  - "Potential conflict": verify the implementations actually diverge
+
+**Examples:**
+```
+Claim: "User Authentication is a Duplicate Implementation in project-a (src/auth/) and project-b (lib/auth/)"
+Verify: Glob for src/auth/ in project-a and lib/auth/ in project-b. Read key files in each to confirm they implement auth independently.
+Result: PASSED or CORRECTED (actually a Shared dependency — both call the same SSO service)
 ```
 
 ## Rules
