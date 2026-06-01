@@ -16,11 +16,128 @@ _Files analyzed: {total_files_read} source files{IF DOCS_PATH}, {docs_count} doc
 
 ---
 
+## Report Personalization
+
+> **Customized for:** {USER_LEVEL_DISPLAY}
+> **Tech Stack Familiarity:** {TECH_COMFORT_SUMMARY}
+
+This report has been tailored based on your experience level and familiarity with the technologies in this codebase.
+
+{IF USER_LEVEL == "associate"}
+_As an Associate SE, this report includes detailed explanations, a glossary of terms, "start here" recommendations, and learning resources for technologies you're still learning._
+{/IF}
+
+{IF USER_LEVEL == "mid"}
+_As a Software Engineer, this report includes contributor guides, patterns to follow, and step-by-step guidance for adding features._
+{/IF}
+
+{IF USER_LEVEL == "senior"}
+_As a Senior SE, this report includes technical debt assessment, scalability analysis, and refactoring recommendations._
+{/IF}
+
+{IF USER_LEVEL == "principal"}
+_As a Principal SE+, this report leads with strategic insights, architectural risk assessment, and industry best practice comparisons._
+{/IF}
+
+---
+
+{IF USER_LEVEL == "principal"}
+## Section 0: Strategic Technical Overview
+
+### One-Page Assessment
+{High-level assessment of the system's technical posture, maturity, and strategic fit}
+
+### Industry Best Practices Alignment
+| Practice | Status | Notes |
+|----------|--------|-------|
+| 12-Factor App | ... | ... |
+| API Design | ... | ... |
+| Security Posture | ... | ... |
+| Observability | ... | ... |
+| CI/CD Maturity | ... | ... |
+
+### Strategic Risks
+{Prioritized list of technical, operational, and organizational risks}
+
+### Top Recommendations
+{Prioritized list of improvements with estimated impact: High/Medium/Low}
+
+### Questions for the Team
+{Gaps in understanding that need human context to resolve}
+
+---
+{/IF}
+
 ## Executive Summary
 
 {2-3 paragraphs summarizing: what the project is, its architecture at a glance, the tech stack, the state of documentation, and the most important findings. Highlight the biggest code-to-handbook discrepancies.}
 
 ---
+
+{IF USER_LEVEL == "associate"}
+## Section 1.5: Getting Started Guide (for New Engineers)
+
+### Your First Day Checklist
+- [ ] Clone the repository and run the setup steps in Section 11
+- [ ] Read the key orientation files: {list top 3-5 files}
+- [ ] Set up your local development environment
+- [ ] Run the test suite to verify your setup
+- [ ] Find a "good first issue" or pair with a team member
+
+### Glossary of Terms
+{Table of domain-specific and technical terms used in this codebase with definitions}
+
+| Term | Definition |
+|------|------------|
+| ... | ... |
+
+### Annotated Directory Map
+{Visual directory structure with explanations of what each folder contains and why it matters}
+
+### Start Here: Top 5 Files to Understand First
+1. {file_path} - {why this file matters, what you'll learn from it}
+2. ...
+
+### Common Beginner Mistakes
+- **Mistake**: {description}
+  - **Why it happens**: {explanation}
+  - **How to avoid it**: {guidance}
+
+---
+{/IF}
+
+{IF TECH_COMFORT has any "new" or "learning" entries}
+## Technology Primers
+
+{For each technology where user indicated "New to me" or "Learning":}
+
+### {Technology Name} Primer
+
+**What it is:** {One-paragraph explanation of the technology's purpose}
+
+**Why this project uses it:** {Specific reasons this codebase chose this technology}
+
+**Key concepts you'll encounter:**
+- **{Concept 1}**: {Brief explanation}
+- **{Concept 2}**: {Brief explanation}
+
+**How it's used in this codebase:**
+- Primary usage pattern: {description with code example}
+- Configuration location: {file path and key settings}
+
+**Quick reference:**
+- Official docs: {link}
+- Recommended tutorial: {link}
+- Key files to study in this codebase:
+  1. {file_path} - {what it demonstrates}
+  2. ...
+
+**Common gotchas:**
+- {Pitfall 1 and how to avoid it}
+- {Pitfall 2 and how to avoid it}
+
+---
+{/IF}
 
 {IF MULTI_PROJECT}
 ## Per-Project Analysis
@@ -147,6 +264,91 @@ handbook-repo/
 {Have conventions changed over time? Based on git history analysis}
 
 ---
+
+{IF USER_LEVEL == "mid"}
+## Section 6.5: Contributor's Guide
+
+### How to Add a New Feature
+1. {Step with file locations and patterns to follow}
+2. ...
+
+### How to Add a New API Endpoint
+1. Create the route in `{routes_file_path}`
+2. Create the handler in `{handlers_path}`
+3. Add validation using {validation_pattern}
+4. Add tests in `{tests_path}`
+5. Update API documentation
+
+### How to Add Tests
+{Testing patterns from this codebase with examples}
+
+**Unit test example (from this codebase):**
+```{language}
+{actual_test_example_from_codebase}
+```
+
+**Integration test example (from this codebase):**
+```{language}
+{actual_test_example_from_codebase}
+```
+
+### Code Review Checklist (Based on Project Conventions)
+- [ ] Follows naming conventions (see Section 6)
+- [ ] Error handling matches project patterns
+- [ ] Has appropriate test coverage
+- [ ] Logging follows project standards
+- [ ] No hardcoded configuration values
+- [ ] {Other project-specific checks}
+
+### Patterns to Follow
+{List of patterns with code snippets showing the preferred way to do things}
+
+### Anti-Patterns to Avoid
+{List of anti-patterns found in the codebase with examples of what to do instead}
+
+---
+{/IF}
+
+{IF USER_LEVEL == "senior"}
+## Section 6.5: Technical Health Assessment
+
+### Technical Debt Inventory
+| Area | Description | Severity | Effort to Fix | Impact |
+|------|-------------|----------|---------------|--------|
+| ... | ... | High/Medium/Low | ... | ... |
+
+### Refactoring Opportunities
+{Ranked by impact, with specific recommendations}
+
+1. **{Area/Module}** - {Description of opportunity}
+   - Current state: {what exists now}
+   - Recommended change: {what should be done}
+   - Impact: {why this matters}
+
+### Scalability Considerations
+- **Current bottlenecks**: {identified bottlenecks in code patterns}
+- **Scaling limitations**: {what would break at higher load}
+- **Recommendations**: {what to address proactively}
+
+### Security Considerations
+{Security-related observations from code analysis - NOT a security audit}
+
+| Area | Observation | Recommendation |
+|------|-------------|----------------|
+| Authentication | ... | ... |
+| Input validation | ... | ... |
+| Secrets management | ... | ... |
+
+### Performance Hotspots
+{Based on code patterns, not runtime data}
+
+### Dependency Health
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| ... | Current/Outdated/Deprecated/Vulnerable | ... |
+
+---
+{/IF}
 
 ## 7. Complete API Surface
 
@@ -294,6 +496,43 @@ handbook-repo/
 {Cases where different handbook pages describe the same thing differently}
 
 ---
+
+{IF USER_LEVEL == "principal"}
+## Section 14.5: Strategic Recommendations
+
+### Architecture Evolution
+{Suggested architectural improvements with rationale}
+
+| Recommendation | Rationale | Effort | Priority |
+|---------------|-----------|--------|----------|
+| ... | ... | High/Medium/Low | P0/P1/P2 |
+
+### Build vs Buy Analysis
+{For key components, analysis of whether current approach is optimal}
+
+| Component | Current Approach | Alternative | Recommendation | Rationale |
+|-----------|------------------|-------------|----------------|-----------|
+| ... | Build (custom) | Buy (vendor X) | Keep/Migrate | ... |
+
+### Team Structure Implications
+{Based on code ownership patterns from git history}
+
+- **Module ownership**: {observations about who owns what}
+- **Bottlenecks**: {single points of failure in knowledge}
+- **Recommendations**: {suggested changes}
+
+### Long-term Maintainability Assessment
+{Assessment of the codebase's trajectory}
+
+| Factor | Current State | Trend | Concern Level |
+|--------|---------------|-------|---------------|
+| Code complexity | ... | Increasing/Stable/Decreasing | High/Medium/Low |
+| Test coverage | ... | ... | ... |
+| Documentation | ... | ... | ... |
+| Dependency freshness | ... | ... | ... |
+
+---
+{/IF}
 
 {IF MULTI_PROJECT}
 

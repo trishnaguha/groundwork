@@ -15,22 +15,77 @@ description: >-
   Reads ALL source files comprehensively. Optionally correlates with docs.
   Analyzes git history for each code repo. Every data point is verified
   against source files before report generation.
+  **Personalized reports**: Asks about user's experience level (Associate SE
+  through Principal SE+) and tech stack familiarity to customize depth,
+  explanations, and focus areas. Associates get onboarding guides and glossaries;
+  Principals get strategic assessments and architectural recommendations.
 argument-hint: <project-path> [<project-path> ...] [--docs-dir=<path>] [--handbook=<path>] [--focus=architecture|patterns|api|testing|devops|docs]
-tools: Read, Write, Glob, Grep, Bash
+tools: Read, Write, Glob, Grep, Bash, AskQuestion
 ---
 
 # Groundwork: Multi-Project Codebase Analyzer
 
 Perform a comprehensive analysis of one or more code repositories, optionally correlated with an engineering handbook or documentation directory. Read ALL source files in each project. When docs are provided, build a full correlation matrix between code and documentation. When multiple projects are given, identify overlapping user stories across codebases. Analyze git history for each code repo. Every data point is verified against source files before report generation -- nothing makes it into the report without proof it exists in the repos.
 
+**Personalized for you**: Before analysis begins, Groundwork asks about your experience level and familiarity with the detected technologies. The report is then customized:
+- **Associate SEs** get detailed explanations, glossaries, "start here" guides, and learning resources
+- **Mid-level SEs** get contributor guides, patterns to follow, and step-by-step feature addition guides
+- **Senior SEs** get technical debt assessments, scalability analysis, and refactoring recommendations
+- **Principal SEs+** get strategic overviews, architectural risk assessments, and industry comparisons
+
 ## Inputs
 
-- `<project-path>`: One or more paths to code repositories (at least one required).
-- `--docs-dir=<path>`: Optional path to a documentation directory. Applied globally for correlation analysis against all projects.
+- `<project-path>`: One or more paths to code repositories (at least one required). Can be:
+  - **Local path**: `/path/to/repo` or `./relative/path`
+  - **GitHub URL**: `https://github.com/org/repo`, `github.com/org/repo`, or `org/repo` (assumes GitHub)
+  - **GitLab URL**: `https://gitlab.com/org/repo` or `gitlab.com/org/repo`
+  - **Git URL**: Any valid git clone URL (`git@github.com:org/repo.git`)
+- `--docs-dir=<path>`: Optional path to a documentation directory. Applied globally for correlation analysis against all projects. Can also be a remote URL.
 - `--handbook=<path>`: Optional convenience alias. Looks for "The Ansible Engineering Handbook" subdirectory inside `<path>`. If found, uses that as the docs path. If not found, falls back to using `<path>` directly as a generic docs dir (with a warning). Mutually exclusive with `--docs-dir`.
 - `--focus=<area>`: Optional focus area for expanded analysis. Values: architecture, patterns, api, testing, devops, docs.
+- `--branch=<name>`: Optional branch to checkout for remote repos (default: default branch).
+- `--depth=<n>`: Optional shallow clone depth for remote repos (default: full clone for git history analysis).
 
-Parse `$ARGUMENTS` by splitting on spaces. All non-flag tokens are project paths. Extract `--docs-dir=X`, `--handbook=X`, and `--focus=X` flags. Error if both `--docs-dir` and `--handbook` are provided.
+Parse `$ARGUMENTS` by splitting on spaces. All non-flag tokens are project paths. Extract `--docs-dir=X`, `--handbook=X`, `--focus=X`, `--branch=X`, and `--depth=X` flags. Error if both `--docs-dir` and `--handbook` are provided.
+
+### Remote Repository Support
+
+For each project path, detect if it's a remote URL and clone if needed:
+
+**URL Detection Patterns:**
+- `https://github.com/org/repo` or `http://github.com/org/repo`
+- `github.com/org/repo` (no protocol - assumes https)
+- `org/repo` (short form - assumes `https://github.com/org/repo`)
+- `https://gitlab.com/org/repo` or `gitlab.com/org/repo`
+- `git@github.com:org/repo.git` (SSH URL)
+- Any URL ending in `.git`
+
+**Clone Process:**
+1. Create temp directory: `/tmp/groundwork-repos/<org>-<repo>-<timestamp>/`
+2. Clone the repository:
+   ```bash
+   # Full clone (default - needed for git history analysis)
+   git clone <url> /tmp/groundwork-repos/<org>-<repo>-<timestamp>/
+   
+   # Or shallow clone if --depth specified
+   git clone --depth <n> <url> /tmp/groundwork-repos/<org>-<repo>-<timestamp>/
+   ```
+3. Checkout specific branch if `--branch` specified:
+   ```bash
+   git checkout <branch>
+   ```
+4. Update the project path to the cloned location for subsequent phases
+
+**Error Handling:**
+- If clone fails (auth required, repo not found, network error), emit error and skip that project
+- If all projects fail to clone, abort with error message
+- For private repos, suggest: "Clone failed. For private repos, clone locally first and provide the local path."
+
+**Cleanup:**
+- At the end of Phase 4 (after report generation), prompt user:
+  > "Cloned repos are at `/tmp/groundwork-repos/`. Delete them? (y/n)"
+- If user confirms, delete the temp directory
+- If user declines, inform them of the location for manual cleanup
 
 ### Backward Compatibility
 
@@ -38,12 +93,105 @@ If exactly two non-flag paths are given and the second contains a directory name
 
 ### Internal State
 
-After parsing, set:
-- `PROJECTS` = list of project paths (1 or more)
+After parsing and cloning (if needed), set:
+- `PROJECTS` = list of project entries, each containing:
+  - `path`: resolved local path (either original or cloned location)
+  - `original_input`: what the user provided (URL or path)
+  - `is_remote`: true if cloned from remote
+  - `remote_url`: the clone URL (if remote)
+  - `branch`: checked out branch
 - `DOCS_PATH` = resolved docs directory path, or null if no docs provided
 - `DOCS_MODE` = "handbook" (--handbook with Ansible handbook found), "generic" (--docs-dir or --handbook fallback), or null
 - `FOCUS` = focus area string or null
 - `MULTI_PROJECT` = true if len(PROJECTS) > 1
+- `HAS_REMOTE_REPOS` = true if any project was cloned from remote
+- `CLONE_DIR` = path to temp clone directory (if any remotes)
+
+## Phase 0: User Profiling
+
+Before analysis begins, gather information about the user to customize the report output. This ensures the analysis is tailored to their experience level and familiarity with the technologies involved.
+
+### 0.1 Gather User Profile
+
+Ask the user the following questions using structured prompts:
+
+**Question 1: Experience Level**
+
+> What is your current role/designation?
+>
+> - Associate Software Engineer (0-2 years experience)
+> - Software Engineer (2-4 years experience)
+> - Senior Software Engineer (4-7 years experience)
+> - Principal Software Engineer and above (7+ years experience)
+
+**Question 2: Tech Stack Familiarity**
+
+After Phase 1.2.1 (Detect Tech Stack) completes, present the detected technologies and ask:
+
+> How comfortable are you with the following technologies detected in this codebase?
+>
+> For each technology, rate your familiarity:
+> - **New to me**: Never used it, need explanations of concepts
+> - **Learning**: Used it a few times, understand basics
+> - **Comfortable**: Use it regularly, understand patterns
+> - **Expert**: Deep knowledge, can mentor others
+
+### 0.2 User Profile Configuration
+
+Based on responses, set internal configuration flags:
+
+```
+USER_LEVEL = "associate" | "mid" | "senior" | "principal"
+TECH_COMFORT = {
+  "<technology>": "new" | "learning" | "comfortable" | "expert",
+  ...
+}
+```
+
+### 0.3 Report Customization Rules
+
+The user profile affects report generation as follows:
+
+#### By Experience Level
+
+| Level | Report Characteristics |
+|-------|----------------------|
+| **Associate** | Detailed explanations of architectural patterns. Step-by-step onboarding guidance. Glossary of domain terms. "Why it matters" context for each section. Links to learning resources. Explicit "what to read first" recommendations. |
+| **Mid-level** | Balanced depth. Focus on conventions and patterns to follow. Integration points highlighted. Common pitfalls called out. "How to contribute" guidance. |
+| **Senior** | Architecture-first view. Design decision rationale. Technical debt assessment. Scalability considerations. Areas needing refactoring. Cross-cutting concerns. |
+| **Principal+** | Executive summary focus. Strategic technical insights. System-wide patterns and anti-patterns. Architectural risks. Recommendations for improvement. Comparison with industry best practices. |
+
+#### By Tech Stack Familiarity
+
+For technologies marked as **"New to me"** or **"Learning"**:
+- Include a "Technology Primer" subsection explaining core concepts
+- Add code examples with inline explanations
+- Link to official documentation and tutorials
+- Highlight common gotchas for beginners
+
+For technologies marked as **"Comfortable"** or **"Expert"**:
+- Focus on project-specific patterns and deviations from standard practices
+- Highlight advanced usage patterns found in the codebase
+- Note any unusual or innovative approaches worth studying
+
+### 0.4 Store Profile for Session
+
+Store the user profile so it persists throughout the analysis and can be referenced by all agents in Phase 2.
+
+```
+USER_PROFILE = {
+  "level": USER_LEVEL,
+  "tech_comfort": TECH_COMFORT,
+  "customization_flags": {
+    "include_primers": true/false,
+    "explanation_depth": "detailed" | "balanced" | "concise" | "executive",
+    "focus_areas": ["onboarding", "contributing", "architecture", "strategy"],
+    "include_learning_resources": true/false
+  }
+}
+```
+
+---
 
 ## Phase 1: Discovery & Orientation
 
@@ -113,13 +261,31 @@ Compile all findings into a Discovery Summary containing:
 
 ## Phase 2: Deep Analysis (Parallel Sub-Agents)
 
-Launch Agent sub-agents concurrently in a single message. Pass each agent the Discovery Summary from Phase 1. **Critical: agents must read ALL files in their domain, not samples.**
+Launch Agent sub-agents concurrently in a single message. Pass each agent the Discovery Summary from Phase 1 **and the User Profile from Phase 0**. **Critical: agents must read ALL files in their domain, not samples.**
 
 ### Agent Allocation
 
 For each project in `PROJECTS`, launch 4 agents (A, B, C, D). All agents across all projects run in parallel in a single message. For N projects, this means 4×N agents.
 
 When `DOCS_PATH` is null, agents A and D use their code-only variants (handbook instructions are omitted). When `DOCS_PATH` is set, agents A and D include docs analysis instructions.
+
+### User Profile Context for All Agents
+
+Every agent receives the `USER_PROFILE` and must adapt their analysis accordingly:
+
+```
+USER_PROFILE = {
+  "level": "<associate|mid|senior|principal>",
+  "tech_comfort": { "<tech>": "<new|learning|comfortable|expert>", ... },
+  "customization_flags": { ... }
+}
+```
+
+**Agent output adaptation rules:**
+- If `USER_PROFILE.level == "associate"`: Include explanatory context, define technical terms on first use, add "why this matters" annotations
+- If `USER_PROFILE.level == "principal"`: Lead with strategic insights, focus on architectural implications, highlight risks and recommendations
+- For each technology where `tech_comfort[tech] in ["new", "learning"]`: Include a brief primer section and annotate code examples with explanations
+- For each technology where `tech_comfort[tech] in ["comfortable", "expert"]`: Focus on project-specific deviations and advanced patterns
 
 ### Agent A: Architecture & Structure (per project)
 
@@ -402,6 +568,108 @@ Read `${CLAUDE_SKILL_DIR}/references/report-template.md` for the output structur
 
 Only include data that passed verification.
 
+### 3.7.1 User-Personalized Report Sections
+
+Based on `USER_PROFILE`, include or emphasize the following additional sections:
+
+#### For Associate Software Engineers (`USER_PROFILE.level == "associate"`)
+
+Insert after Section 1 (Executive Summary):
+
+**Section 1.5: Getting Started Guide**
+- "Your First Day" checklist: environment setup, key files to read, who to ask for help
+- Glossary of domain-specific and technical terms used in the codebase
+- Annotated directory map: what each folder contains and why it matters
+- "Start Here" recommendations: the 5-10 most important files to understand first
+- Common beginner mistakes in this codebase and how to avoid them
+
+Insert after the Architecture section:
+
+**Section X.1: Architecture for New Engineers**
+- Visual simplified architecture diagram (if complex)
+- "How a request flows through the system" walkthrough
+- Key abstractions explained with analogies
+- Links to learning resources for unfamiliar patterns
+
+#### For Mid-Level Software Engineers (`USER_PROFILE.level == "mid"`)
+
+Insert after the Patterns section:
+
+**Section X.2: Contributor's Guide**
+- How to add a new feature (step-by-step with file locations)
+- How to add a new API endpoint
+- How to add tests (with example patterns from the codebase)
+- Code review checklist based on project conventions
+- Common patterns to follow (with code snippets)
+- Anti-patterns to avoid (with examples from the codebase if found)
+
+#### For Senior Software Engineers (`USER_PROFILE.level == "senior"`)
+
+Insert after the Architecture section:
+
+**Section X.3: Technical Health Assessment**
+- Technical debt inventory with severity ratings
+- Refactoring opportunities ranked by impact
+- Scalability bottlenecks identified
+- Security considerations and potential vulnerabilities
+- Performance hotspots (based on code patterns, not runtime data)
+- Dependency health: outdated, deprecated, or risky dependencies
+
+#### For Principal Engineers and Above (`USER_PROFILE.level == "principal"`)
+
+Insert at the beginning (before Executive Summary):
+
+**Section 0: Strategic Technical Overview**
+- One-page architectural assessment
+- Alignment with industry best practices (and notable deviations)
+- Risks: technical, operational, and organizational
+- Recommendations: prioritized list of improvements with estimated impact
+- Questions for the team: gaps in understanding that need human context
+- Comparison with similar systems/patterns in industry
+
+Insert after Cross-Reference Findings:
+
+**Section X.4: Strategic Recommendations**
+- Architecture evolution suggestions
+- Build vs buy analysis for key components
+- Team structure implications (based on code ownership patterns)
+- Long-term maintainability assessment
+
+### 3.7.2 Technology Primers (Based on Tech Comfort)
+
+For each technology in `TECH_COMFORT` where the user indicated **"New to me"** or **"Learning"**, generate a primer section:
+
+**Section Y: Technology Primers**
+
+For each unfamiliar technology:
+```
+### {Technology Name} Primer
+
+**What it is:** One-paragraph explanation of the technology's purpose.
+
+**Why this project uses it:** Specific reasons this codebase chose this technology.
+
+**Key concepts you'll encounter:**
+- Concept 1: Brief explanation
+- Concept 2: Brief explanation
+- ...
+
+**How it's used in this codebase:**
+- Primary usage pattern with code example
+- Configuration location and key settings
+
+**Quick reference:**
+- Official docs: [link]
+- Recommended tutorial: [link]
+- Key files to study: [list of 3-5 files in this codebase]
+
+**Common gotchas:**
+- Pitfall 1 and how to avoid it
+- Pitfall 2 and how to avoid it
+```
+
+Place this section after the Tech Stack section but before Architecture.
+
 ### 3.8 Generate HTML Report
 
 After producing the markdown report, also generate an interactive HTML version:
@@ -413,16 +681,31 @@ After producing the markdown report, also generate an interactive HTML version:
    - `__REPO_PATHS__` with the project paths (replaces `__CODE_REPO_PATH__`)
    - `__DOCS_PATH__` with the docs path (or "N/A" if no docs; replaces `__HANDBOOK_REPO_PATH__`)
    - `__FILES_COUNT__`, `__DOCS_COUNT__`, `__IMAGES_COUNT__` with actual counts (DOCS_COUNT and IMAGES_COUNT are 0 if no docs)
+   - `__USER_LEVEL__` with the user's experience level display name
+   - `__USER_LEVEL_BADGE__` with appropriate badge class (associate, mid, senior, principal)
+   - `__TECH_COMFORT_SUMMARY__` with the technology familiarity summary
    - Each `<!-- __CONTENT_xxx__ -->` comment with the actual HTML content for that section
    - For multi-project: populate `<!-- __CONTENT_PROJECTS__ -->` with per-project section HTML
    - For multi-project: populate `<!-- __CONTENT_OVERLAP__ -->` with cross-project overlap HTML
    - Omit docs-related sections from sidebar and body when `DOCS_PATH` is null
+   - **User-personalized sections based on USER_PROFILE.level:**
+     - `<!-- __CONTENT_GETTING_STARTED__ -->` for Associate SE (Section 1.5)
+     - `<!-- __CONTENT_TECH_PRIMERS__ -->` for users with unfamiliar technologies
+     - `<!-- __CONTENT_CONTRIBUTOR_GUIDE__ -->` for Mid-level SE
+     - `<!-- __CONTENT_TECH_HEALTH__ -->` for Senior SE
+     - `<!-- __CONTENT_STRATEGIC_OVERVIEW__ -->` for Principal SE+
+     - `<!-- __CONTENT_STRATEGIC_RECOMMENDATIONS__ -->` for Principal SE+
 
 3. Use the template's built-in CSS classes for rich rendering (same as current behavior).
 
-4. Write the HTML file to `/tmp/groundwork-report.html`
-5. Open it in the browser: `open /tmp/groundwork-report.html`
-6. Tell the user the file path
+4. Add a "Report Personalization" banner at the top of the report showing:
+   - User level with appropriate styling/badge
+   - Technologies the user is learning (highlighted for easy reference)
+   - A note explaining the report has been customized
+
+5. Write the HTML file to `/tmp/groundwork-report.html`
+6. Open it in the browser: `open /tmp/groundwork-report.html`
+7. Tell the user the file path
 
 ## Phase 4: Interactive Q&A
 
@@ -434,6 +717,8 @@ After producing both reports, end with this message:
 
 **Groundwork complete.** Read {N} source files across {M} modules. {V} claims verified against source files ({pass_rate}% pass rate).
 
+Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
+
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 ---
@@ -441,6 +726,8 @@ HTML report: `/tmp/groundwork-report.html` (opened in browser)
 **Single project, with docs:**
 
 **Groundwork complete.** Read {N} source files across {M} modules and {P} documents in the docs directory. {V} claims verified against source files ({pass_rate}% pass rate).
+
+Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
 
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
@@ -450,11 +737,19 @@ HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 **Groundwork complete.** Analyzed {num_projects} projects: {project_names}. Read {N} total source files{IF DOCS_PATH is set} and {P} documents{/IF}. Identified {overlap_count} user story overlaps. {V} claims verified ({pass_rate}% pass rate).
 
+Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
+
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 ---
 
-Follow-up prompts:
+Where:
+- `USER_LEVEL_DISPLAY` = "Associate SE" | "Software Engineer" | "Senior SE" | "Principal SE+"
+- `TECH_COMFORT_SUMMARY` = e.g., "Comfortable with Python, Go | Learning Kubernetes | New to gRPC"
+
+Follow-up prompts (customized by user level):
+
+**For all users:**
 - "How is [feature] implemented?"
 - "Walk me through the [X] execution flow"
 {IF DOCS_PATH is set}
@@ -465,6 +760,26 @@ Follow-up prompts:
 - "Show me the overlap between [project-a] and [project-b] for [feature]"
 - "Which user stories are duplicated across projects?"
 {/IF}
+
+**For Associate SE:**
+- "Explain [concept] in simpler terms"
+- "What should I learn first to understand this codebase?"
+- "Show me a simple example of [pattern] from this codebase"
+- "What are common mistakes to avoid?"
+
+**For Mid-level SE:**
 - "What would I need to do to add a new [endpoint/feature/module]?"
+- "What patterns should I follow when adding [X]?"
+- "Show me similar implementations I can reference"
+
+**For Senior SE:**
+- "What technical debt should be prioritized?"
+- "What are the scalability concerns?"
+- "Where are the security considerations?"
+
+**For Principal SE+:**
+- "What are the strategic risks in this architecture?"
+- "How does this compare to industry best practices?"
+- "What would you recommend changing first?"
 
 The full analysis context is available for deep follow-ups.
