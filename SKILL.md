@@ -15,10 +15,10 @@ description: >-
   Reads ALL source files comprehensively. Optionally correlates with docs.
   Analyzes git history for each code repo. Every data point is verified
   against source files before report generation.
-  **Personalized reports**: Asks about user's experience level (Associate SE
-  through Principal SE+) and tech stack familiarity to customize depth,
-  explanations, and focus areas. Associates get onboarding guides and glossaries;
-  Principals get strategic assessments and architectural recommendations.
+  **Personalized reports**: Asks about desired verbosity (1-4) and tech stack
+  familiarity to customize depth, explanations, and focus areas. Verbosity 4
+  includes onboarding guides and glossaries; Verbosity 1 provides strategic
+  assessments and architectural recommendations.
 argument-hint: <project-path> [<project-path> ...] [--docs-dir=<path>] [--handbook=<path>] [--focus=architecture|patterns|api|testing|devops|docs]
 tools: Read, Write, Glob, Grep, Bash, AskQuestion
 ---
@@ -27,11 +27,11 @@ tools: Read, Write, Glob, Grep, Bash, AskQuestion
 
 Perform a comprehensive analysis of one or more code repositories, optionally correlated with an engineering handbook or documentation directory. Read ALL source files in each project. When docs are provided, build a full correlation matrix between code and documentation. When multiple projects are given, identify overlapping user stories across codebases. Analyze git history for each code repo. Every data point is verified against source files before report generation -- nothing makes it into the report without proof it exists in the repos.
 
-**Personalized for you**: Before analysis begins, Groundwork asks about your experience level and familiarity with the detected technologies. The report is then customized:
-- **Associate SEs** get detailed explanations, glossaries, "start here" guides, and learning resources
-- **Mid-level SEs** get contributor guides, patterns to follow, and step-by-step feature addition guides
-- **Senior SEs** get technical debt assessments, scalability analysis, and refactoring recommendations
-- **Principal SEs+** get strategic overviews, architectural risk assessments, and industry comparisons
+**Personalized for you**: Before analysis begins, Groundwork asks about your desired verbosity level and familiarity with the detected technologies. The report is then customized:
+- **Verbosity 4 (Comprehensive)**: Detailed explanations, glossaries, "start here" guides, and learning resources
+- **Verbosity 3 (Balanced)**: Contributor guides, patterns to follow, and step-by-step feature addition guides
+- **Verbosity 2 (Architectural)**: Technical debt assessments, scalability analysis, and refactoring recommendations
+- **Verbosity 1 (Executive)**: Strategic overviews, architectural risk assessments, and industry comparisons
 
 ## Inputs
 
@@ -109,20 +109,20 @@ After parsing and cloning (if needed), set:
 
 ## Phase 0: User Profiling
 
-Before analysis begins, gather information about the user to customize the report output. This ensures the analysis is tailored to their experience level and familiarity with the technologies involved.
+Before analysis begins, gather information about the user to customize the report output. This ensures the analysis is tailored to their desired verbosity and familiarity with the technologies involved.
 
 ### 0.1 Gather User Profile
 
 Ask the user the following questions using structured prompts:
 
-**Question 1: Experience Level**
+**Question 1: Verbosity Level**
 
-> What is your current role/designation?
+> How detailed should the report be?
 >
-> - Associate Software Engineer (0-2 years experience)
-> - Software Engineer (2-4 years experience)
-> - Senior Software Engineer (4-7 years experience)
-> - Principal Software Engineer and above (7+ years experience)
+> - **1 - Executive**: Strategic overview, high-level insights, architectural risks
+> - **2 - Architectural**: Design decisions, technical debt, scalability analysis
+> - **3 - Balanced**: Patterns, conventions, contributor guidance
+> - **4 - Comprehensive**: Detailed explanations, glossaries, learning resources
 
 **Question 2: Tech Stack Familiarity**
 
@@ -141,7 +141,7 @@ After Phase 1.2.1 (Detect Tech Stack) completes, present the detected technologi
 Based on responses, set internal configuration flags:
 
 ```
-USER_LEVEL = "associate" | "mid" | "senior" | "principal"
+VERBOSITY = 1 | 2 | 3 | 4
 TECH_COMFORT = {
   "<technology>": "new" | "learning" | "comfortable" | "expert",
   ...
@@ -152,14 +152,14 @@ TECH_COMFORT = {
 
 The user profile affects report generation as follows:
 
-#### By Experience Level
+#### By Verbosity Level
 
-| Level | Report Characteristics |
-|-------|----------------------|
-| **Associate** | Detailed explanations of architectural patterns. Step-by-step onboarding guidance. Glossary of domain terms. "Why it matters" context for each section. Links to learning resources. Explicit "what to read first" recommendations. |
-| **Mid-level** | Balanced depth. Focus on conventions and patterns to follow. Integration points highlighted. Common pitfalls called out. "How to contribute" guidance. |
-| **Senior** | Architecture-first view. Design decision rationale. Technical debt assessment. Scalability considerations. Areas needing refactoring. Cross-cutting concerns. |
-| **Principal+** | Executive summary focus. Strategic technical insights. System-wide patterns and anti-patterns. Architectural risks. Recommendations for improvement. Comparison with industry best practices. |
+| Verbosity | Report Characteristics |
+|-----------|----------------------|
+| **1 - Executive** | Executive summary focus. Strategic technical insights. System-wide patterns and anti-patterns. Architectural risks. Recommendations for improvement. Comparison with industry best practices. |
+| **2 - Architectural** | Architecture-first view. Design decision rationale. Technical debt assessment. Scalability considerations. Areas needing refactoring. Cross-cutting concerns. |
+| **3 - Balanced** | Balanced depth. Focus on conventions and patterns to follow. Integration points highlighted. Common pitfalls called out. "How to contribute" guidance. |
+| **4 - Comprehensive** | Detailed explanations of architectural patterns. Step-by-step onboarding guidance. Glossary of domain terms. "Why it matters" context for each section. Links to learning resources. Explicit "what to read first" recommendations. |
 
 #### By Tech Stack Familiarity
 
@@ -180,12 +180,12 @@ Store the user profile so it persists throughout the analysis and can be referen
 
 ```
 USER_PROFILE = {
-  "level": USER_LEVEL,
+  "verbosity": VERBOSITY,
   "tech_comfort": TECH_COMFORT,
   "customization_flags": {
     "include_primers": true/false,
-    "explanation_depth": "detailed" | "balanced" | "concise" | "executive",
-    "focus_areas": ["onboarding", "contributing", "architecture", "strategy"],
+    "explanation_depth": "executive" | "architectural" | "balanced" | "comprehensive",
+    "focus_areas": ["strategy", "architecture", "contributing", "onboarding"],
     "include_learning_resources": true/false
   }
 }
@@ -275,15 +275,15 @@ Every agent receives the `USER_PROFILE` and must adapt their analysis accordingl
 
 ```
 USER_PROFILE = {
-  "level": "<associate|mid|senior|principal>",
+  "verbosity": 1 | 2 | 3 | 4,
   "tech_comfort": { "<tech>": "<new|learning|comfortable|expert>", ... },
   "customization_flags": { ... }
 }
 ```
 
 **Agent output adaptation rules:**
-- If `USER_PROFILE.level == "associate"`: Include explanatory context, define technical terms on first use, add "why this matters" annotations
-- If `USER_PROFILE.level == "principal"`: Lead with strategic insights, focus on architectural implications, highlight risks and recommendations
+- If `USER_PROFILE.verbosity == 4`: Include explanatory context, define technical terms on first use, add "why this matters" annotations
+- If `USER_PROFILE.verbosity == 1`: Lead with strategic insights, focus on architectural implications, highlight risks and recommendations
 - For each technology where `tech_comfort[tech] in ["new", "learning"]`: Include a brief primer section and annotate code examples with explanations
 - For each technology where `tech_comfort[tech] in ["comfortable", "expert"]`: Focus on project-specific deviations and advanced patterns
 
@@ -572,7 +572,7 @@ Only include data that passed verification.
 
 Based on `USER_PROFILE`, include or emphasize the following additional sections:
 
-#### For Associate Software Engineers (`USER_PROFILE.level == "associate"`)
+#### For Verbosity 4 - Comprehensive (`USER_PROFILE.verbosity == 4`)
 
 Insert after Section 1 (Executive Summary):
 
@@ -591,7 +591,7 @@ Insert after the Architecture section:
 - Key abstractions explained with analogies
 - Links to learning resources for unfamiliar patterns
 
-#### For Mid-Level Software Engineers (`USER_PROFILE.level == "mid"`)
+#### For Verbosity 3 - Balanced (`USER_PROFILE.verbosity == 3`)
 
 Insert after the Patterns section:
 
@@ -603,7 +603,7 @@ Insert after the Patterns section:
 - Common patterns to follow (with code snippets)
 - Anti-patterns to avoid (with examples from the codebase if found)
 
-#### For Senior Software Engineers (`USER_PROFILE.level == "senior"`)
+#### For Verbosity 2 - Architectural (`USER_PROFILE.verbosity == 2`)
 
 Insert after the Architecture section:
 
@@ -615,7 +615,7 @@ Insert after the Architecture section:
 - Performance hotspots (based on code patterns, not runtime data)
 - Dependency health: outdated, deprecated, or risky dependencies
 
-#### For Principal Engineers and Above (`USER_PROFILE.level == "principal"`)
+#### For Verbosity 1 - Executive (`USER_PROFILE.verbosity == 1`)
 
 Insert at the beginning (before Executive Summary):
 
@@ -681,20 +681,20 @@ After producing the markdown report, also generate an interactive HTML version:
    - `__REPO_PATHS__` with the project paths (replaces `__CODE_REPO_PATH__`)
    - `__DOCS_PATH__` with the docs path (or "N/A" if no docs; replaces `__HANDBOOK_REPO_PATH__`)
    - `__FILES_COUNT__`, `__DOCS_COUNT__`, `__IMAGES_COUNT__` with actual counts (DOCS_COUNT and IMAGES_COUNT are 0 if no docs)
-   - `__USER_LEVEL__` with the user's experience level display name
-   - `__USER_LEVEL_BADGE__` with appropriate badge class (associate, mid, senior, principal)
+   - `__VERBOSITY__` with the user's verbosity level display name
+   - `__VERBOSITY_BADGE__` with appropriate badge class (v1, v2, v3, v4)
    - `__TECH_COMFORT_SUMMARY__` with the technology familiarity summary
    - Each `<!-- __CONTENT_xxx__ -->` comment with the actual HTML content for that section
    - For multi-project: populate `<!-- __CONTENT_PROJECTS__ -->` with per-project section HTML
    - For multi-project: populate `<!-- __CONTENT_OVERLAP__ -->` with cross-project overlap HTML
    - Omit docs-related sections from sidebar and body when `DOCS_PATH` is null
-   - **User-personalized sections based on USER_PROFILE.level:**
-     - `<!-- __CONTENT_GETTING_STARTED__ -->` for Associate SE (Section 1.5)
+   - **User-personalized sections based on USER_PROFILE.verbosity:**
+     - `<!-- __CONTENT_GETTING_STARTED__ -->` for Verbosity 4 (Section 1.5)
      - `<!-- __CONTENT_TECH_PRIMERS__ -->` for users with unfamiliar technologies
-     - `<!-- __CONTENT_CONTRIBUTOR_GUIDE__ -->` for Mid-level SE
-     - `<!-- __CONTENT_TECH_HEALTH__ -->` for Senior SE
-     - `<!-- __CONTENT_STRATEGIC_OVERVIEW__ -->` for Principal SE+
-     - `<!-- __CONTENT_STRATEGIC_RECOMMENDATIONS__ -->` for Principal SE+
+     - `<!-- __CONTENT_CONTRIBUTOR_GUIDE__ -->` for Verbosity 3
+     - `<!-- __CONTENT_TECH_HEALTH__ -->` for Verbosity 2
+     - `<!-- __CONTENT_STRATEGIC_OVERVIEW__ -->` for Verbosity 1
+     - `<!-- __CONTENT_STRATEGIC_RECOMMENDATIONS__ -->` for Verbosity 1
 
 3. Use the template's built-in CSS classes for rich rendering (same as current behavior).
 
@@ -717,7 +717,7 @@ After producing both reports, end with this message:
 
 **Groundwork complete.** Read {N} source files across {M} modules. {V} claims verified against source files ({pass_rate}% pass rate).
 
-Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
+Report verbosity: **{VERBOSITY_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
 
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
@@ -727,7 +727,7 @@ HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 **Groundwork complete.** Read {N} source files across {M} modules and {P} documents in the docs directory. {V} claims verified against source files ({pass_rate}% pass rate).
 
-Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
+Report verbosity: **{VERBOSITY_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
 
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
@@ -737,19 +737,19 @@ HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 **Groundwork complete.** Analyzed {num_projects} projects: {project_names}. Read {N} total source files{IF DOCS_PATH is set} and {P} documents{/IF}. Identified {overlap_count} user story overlaps. {V} claims verified ({pass_rate}% pass rate).
 
-Report customized for: **{USER_LEVEL_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
+Report verbosity: **{VERBOSITY_DISPLAY}** | Tech familiarity: {TECH_COMFORT_SUMMARY}
 
 HTML report: `/tmp/groundwork-report.html` (opened in browser)
 
 ---
 
 Where:
-- `USER_LEVEL_DISPLAY` = "Associate SE" | "Software Engineer" | "Senior SE" | "Principal SE+"
+- `VERBOSITY_DISPLAY` = "1 - Executive" | "2 - Architectural" | "3 - Balanced" | "4 - Comprehensive"
 - `TECH_COMFORT_SUMMARY` = e.g., "Comfortable with Python, Go | Learning Kubernetes | New to gRPC"
 
-Follow-up prompts (customized by user level):
+Follow-up prompts (customized by verbosity level):
 
-**For all users:**
+**For all verbosity levels:**
 - "How is [feature] implemented?"
 - "Walk me through the [X] execution flow"
 {IF DOCS_PATH is set}
@@ -761,23 +761,23 @@ Follow-up prompts (customized by user level):
 - "Which user stories are duplicated across projects?"
 {/IF}
 
-**For Associate SE:**
+**For Verbosity 4 (Comprehensive):**
 - "Explain [concept] in simpler terms"
 - "What should I learn first to understand this codebase?"
 - "Show me a simple example of [pattern] from this codebase"
 - "What are common mistakes to avoid?"
 
-**For Mid-level SE:**
+**For Verbosity 3 (Balanced):**
 - "What would I need to do to add a new [endpoint/feature/module]?"
 - "What patterns should I follow when adding [X]?"
 - "Show me similar implementations I can reference"
 
-**For Senior SE:**
+**For Verbosity 2 (Architectural):**
 - "What technical debt should be prioritized?"
 - "What are the scalability concerns?"
 - "Where are the security considerations?"
 
-**For Principal SE+:**
+**For Verbosity 1 (Executive):**
 - "What are the strategic risks in this architecture?"
 - "How does this compare to industry best practices?"
 - "What would you recommend changing first?"
