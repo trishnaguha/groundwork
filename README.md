@@ -2,14 +2,14 @@
 
 A Claude Code skill that reads every file in one or more code repositories, optionally correlates with an engineering handbook or documentation directory, and produces a structured analysis report. When multiple projects are provided, it identifies overlapping user stories across codebases.
 
-**Personalized for you:** Before analysis, Groundwork asks about your experience level and tech stack familiarity, then tailors the report accordingly:
+**Personalized for you:** Before analysis, Groundwork asks about your desired verbosity level and tech stack familiarity, then tailors the report accordingly:
 
-| Your Level | What You Get |
-|------------|--------------|
-| **Associate SE** | Getting started guide, glossary, "start here" files, learning resources |
-| **Mid-level SE** | Contributor's guide, patterns to follow, code review checklist |
-| **Senior SE** | Technical debt assessment, scalability analysis, refactoring recommendations |
-| **Principal SE+** | Strategic overview, architectural risks, industry comparisons, recommendations |
+| Verbosity | Report Focus |
+|-----------|--------------|
+| **1 - Executive** | Strategic overview, architectural risks, industry comparisons, recommendations |
+| **2 - Architectural** | Technical debt assessment, scalability analysis, refactoring recommendations |
+| **3 - Balanced** | Contributor's guide, patterns to follow, code review checklist |
+| **4 - Comprehensive** | Getting started guide, glossary, "start here" files, learning resources |
 
 Built for teams that need deep codebase understanding -- whether analyzing a single project, correlating code with architecture docs, or finding overlap across related repositories.
 
@@ -187,7 +187,7 @@ The skill operates in phases, progressively activating features based on argumen
                           /groundwork
                                |
                      Phase 0: User Profiling
-                   (experience level, tech
+                   (verbosity level, tech
                     stack familiarity)
                                |
                      Phase 1: Discovery
@@ -217,21 +217,21 @@ The skill operates in phases, progressively activating features based on argumen
                                |
                   Phase 4: Report + Q&A
                   (markdown + HTML output,
-                   personalized by user level)
+                   personalized by verbosity level)
 ```
 
 ### Phase 0 -- User Profiling
 
 Before analysis begins, Groundwork asks two questions:
 
-1. **Experience Level:** Associate SE, SE, Senior SE, or Principal SE+
+1. **Verbosity Level:** 1 (Executive), 2 (Architectural), 3 (Balanced), or 4 (Comprehensive)
 2. **Tech Stack Familiarity:** For each detected technology, rate as New/Learning/Comfortable/Expert
 
 This profile customizes the entire report:
-- **Associates** get detailed explanations, glossaries, and "start here" guides
-- **Mid-level** engineers get contributor guides and patterns to follow
-- **Seniors** get technical debt assessments and scalability analysis
-- **Principals** get strategic overviews and architectural recommendations
+- **Verbosity 4** includes detailed explanations, glossaries, and "start here" guides
+- **Verbosity 3** includes contributor guides and patterns to follow
+- **Verbosity 2** includes technical debt assessments and scalability analysis
+- **Verbosity 1** includes strategic overviews and architectural recommendations
 
 Technologies marked as unfamiliar automatically include "Technology Primer" sections with concepts, examples, and learning resources.
 
@@ -293,13 +293,13 @@ Claims that pass stay. Minor inaccuracies get auto-corrected. Unverifiable claim
 
 ### Markdown (in conversation)
 
-Sections 12-14 only appear when docs are provided. Section 13.5 only appears with multiple projects. Personalized sections appear based on user level.
+Sections 12-14 only appear when docs are provided. Section 13.5 only appears with multiple projects. Personalized sections appear based on verbosity level.
 
 | # | Section | Covers |
 |---|---------|--------|
-| 0 | Strategic Overview | One-page assessment, risks, recommendations *(Principal+ only)* |
+| 0 | Strategic Overview | One-page assessment, risks, recommendations *(Verbosity 1 only)* |
 | -- | Executive Summary | 2-3 paragraph overview |
-| 1.5 | Getting Started Guide | First day checklist, glossary, "start here" files *(Associate only)* |
+| 1.5 | Getting Started Guide | First day checklist, glossary, "start here" files *(Verbosity 4 only)* |
 | -- | Technology Primers | Concepts, examples, resources for unfamiliar tech *(based on profile)* |
 | 1 | Project Identity | Language, framework, repo stats |
 | 2 | Architecture | Component map, layers, diagram analysis, divergences |
@@ -307,8 +307,8 @@ Sections 12-14 only appear when docs are provided. Section 13.5 only appears wit
 | 4 | Tech Stack & Deps | Full dependency table |
 | 5 | Entry Points & Flows | Main execution paths |
 | 6 | Coding Conventions | Naming, errors, logging -- with code snippets |
-| 6.5 | Contributor's Guide | How to add features, patterns, code review checklist *(Mid-level only)* |
-| 6.5 | Technical Health | Tech debt, scalability, security, dependency health *(Senior only)* |
+| 6.5 | Contributor's Guide | How to add features, patterns, code review checklist *(Verbosity 3 only)* |
+| 6.5 | Technical Health | Tech debt, scalability, security, dependency health *(Verbosity 2 only)* |
 | 7 | API Surface | Every endpoint |
 | 8 | Data Models | Schema, migrations |
 | 9 | Testing | Framework, organization, mocking |
@@ -318,7 +318,7 @@ Sections 12-14 only appear when docs are provided. Section 13.5 only appears wit
 | 13 | Correlation Matrix | Bidirectional handbook-to-code mapping |
 | 13.5 | Cross-Project Overlap | User story inventory, overlap matrix, recommendations *(multi-project only)* |
 | 14 | Cross-Reference | Orphaned code, stale docs, contradictions |
-| 14.5 | Strategic Recommendations | Architecture evolution, build vs buy, team structure *(Principal+ only)* |
+| 14.5 | Strategic Recommendations | Architecture evolution, build vs buy, team structure *(Verbosity 1 only)* |
 | 15 | Verification Summary | Pass rate, corrections, removals |
 | 16 | Git History | Velocity, contributors, hot areas |
 | 17 | Key Findings | Top 10 things a new engineer should know |
@@ -329,18 +329,18 @@ After the report, the conversation stays open for follow-up questions with the f
 
 Interactive single-page report at `/tmp/groundwork-report.html`:
 
-- **Personalization banner** showing your level and tech familiarity
+- **Personalization banner** showing your verbosity level and tech familiarity
 - Sidebar navigation with scroll spy (includes personalized sections)
 - Collapsible sections, searchable tables
 - Color-coded status badges and coverage bars
-- User level badges (Associate/Mid/Senior/Principal)
+- Verbosity level badges (1-Executive/2-Architectural/3-Balanced/4-Comprehensive)
 - Dark/light theme toggle (auto-detects OS preference)
 - Print-friendly, mobile-responsive
 - Zero external dependencies -- one self-contained file
 
 ## Tips
 
-- **Answer the profiling questions honestly.** The report is tailored to your level -- Associates get onboarding help, Principals get strategic insights. Misrepresenting your level gives you a less useful report.
+- **Choose the right verbosity level.** The report is tailored to your selection -- Verbosity 4 includes onboarding help, Verbosity 1 focuses on strategic insights. Choosing the wrong level gives you a less useful report.
 - **Mark unfamiliar tech accurately.** Technologies you mark as "New" or "Learning" get primer sections with concepts and learning resources. Don't skip these if you need them.
 - **Remote repos are cloned to `/tmp`.** After analysis, you'll be asked if you want to delete them. Say yes unless you plan to explore the code locally.
 - **Private repos need local clone.** For repos requiring authentication, clone locally first and provide the local path.
