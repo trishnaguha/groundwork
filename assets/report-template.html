@@ -189,6 +189,69 @@ pre code { background: none; padding: 0; }
 .badge-blue { background: var(--blue-bg); color: var(--blue); }
 .badge-gray { background: var(--bg-alt); color: var(--fg-dim); }
 
+/* ── User level badges ── */
+.badge-associate { background: #dbeafe; color: #1d4ed8; }
+.badge-mid { background: #d1fae5; color: #047857; }
+.badge-senior { background: #fef3c7; color: #b45309; }
+.badge-principal { background: #ede9fe; color: #6d28d9; }
+
+/* ── Personalization banner ── */
+.personalization-banner {
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--bg-alt) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.personalization-banner .user-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--fg-heading);
+}
+.personalization-banner .tech-familiarity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+}
+.personalization-banner .tech-tag {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.personalization-banner .tech-tag.new { background: var(--red-bg); color: var(--red); }
+.personalization-banner .tech-tag.learning { background: var(--yellow-bg); color: var(--yellow); }
+.personalization-banner .tech-tag.comfortable { background: var(--green-bg); color: var(--green); }
+.personalization-banner .tech-tag.expert { background: var(--blue-bg); color: var(--blue); }
+.personalization-note {
+  width: 100%;
+  font-size: 12px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+/* ── Getting started checklist ── */
+.checklist { list-style: none; padding-left: 0; }
+.checklist li {
+  position: relative;
+  padding-left: 28px;
+  margin-bottom: 8px;
+}
+.checklist li::before {
+  content: '☐';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-size: 16px;
+}
+
 /* ── Coverage bar ── */
 .coverage-bar {
   display: flex; height: 6px; border-radius: 3px; overflow: hidden;
@@ -283,14 +346,32 @@ details .details-body { padding: 12px 14px; }
     <input type="text" id="nav-search" placeholder="Filter sections..." autocomplete="off">
   </div>
   <ul class="nav-links" id="nav-links">
+    <!-- __IF_PRINCIPAL__ -->
+    <li><a href="#strategic-overview">0. Strategic Overview</a></li>
+    <!-- __/IF_PRINCIPAL__ -->
     <li><a href="#summary">Executive Summary</a></li>
+    <!-- __IF_ASSOCIATE__ -->
+    <li><a href="#getting-started-guide">1.5 Getting Started Guide</a></li>
+    <!-- __/IF_ASSOCIATE__ -->
+    <!-- __IF_HAS_PRIMERS__ -->
+    <li><a href="#tech-primers">Technology Primers</a></li>
+    <!-- __/IF_HAS_PRIMERS__ -->
     <!-- __NAV_PROJECT_SECTIONS__ -->
     <li><a href="#identity">1. Project Identity</a></li>
     <li><a href="#architecture">2. Architecture</a></li>
+    <!-- __IF_ASSOCIATE__ -->
+    <li><a href="#arch-newbie" class="nav-sub">Architecture Explained</a></li>
+    <!-- __/IF_ASSOCIATE__ -->
     <li><a href="#directory">3. Directory &amp; Modules</a></li>
     <li><a href="#stack">4. Tech Stack &amp; Deps</a></li>
     <li><a href="#entrypoints">5. Entry Points &amp; Flows</a></li>
     <li><a href="#conventions">6. Coding Conventions</a></li>
+    <!-- __IF_MID__ -->
+    <li><a href="#contributor-guide">6.5 Contributor's Guide</a></li>
+    <!-- __/IF_MID__ -->
+    <!-- __IF_SENIOR__ -->
+    <li><a href="#tech-health">6.5 Technical Health</a></li>
+    <!-- __/IF_SENIOR__ -->
     <li><a href="#api">7. API Surface</a></li>
     <li><a href="#data">8. Data Models</a></li>
     <li><a href="#testing">9. Testing</a></li>
@@ -301,6 +382,9 @@ details .details-body { padding: 12px 14px; }
     <li><a href="#correlation">13. Correlation Matrix</a></li>
     <li><a href="#crossref">14. Cross-Reference</a></li>
     <!-- __/IF_DOCS__ -->
+    <!-- __IF_PRINCIPAL__ -->
+    <li><a href="#strategic-recommendations">14.5 Strategic Recommendations</a></li>
+    <!-- __/IF_PRINCIPAL__ -->
     <!-- __IF_MULTI__ -->
     <li><a href="#overlap">13.5 Cross-Project Overlap</a></li>
     <!-- __/IF_MULTI__ -->
@@ -323,6 +407,57 @@ details .details-body { padding: 12px 14px; }
     </div>
   </div>
 
+  <!-- ====== PERSONALIZATION BANNER ====== -->
+  <div class="personalization-banner">
+    <div class="user-level">
+      <span>Customized for:</span>
+      <span class="badge __USER_LEVEL_BADGE__">__USER_LEVEL__</span>
+    </div>
+    <div class="tech-familiarity">
+      <span>Tech familiarity:</span>
+      <!-- __TECH_COMFORT_TAGS__ -->
+      <!-- Example tags:
+      <span class="tech-tag comfortable">Python</span>
+      <span class="tech-tag learning">Kubernetes</span>
+      <span class="tech-tag new">gRPC</span>
+      -->
+    </div>
+    <p class="personalization-note">__PERSONALIZATION_NOTE__</p>
+  </div>
+
+  <!-- __IF_PRINCIPAL__ -->
+  <!-- ====== SECTION: STRATEGIC OVERVIEW (Principal+) ====== -->
+  <section id="strategic-overview">
+    <h2>0. Strategic Technical Overview <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_STRATEGIC_OVERVIEW__ -->
+      <!--
+        <h3>One-Page Assessment</h3>
+        <p>...</p>
+
+        <h3>Industry Best Practices Alignment</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Practice</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>12-Factor App</td><td><span class="badge badge-green">Aligned</span></td><td>...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Strategic Risks</h3>
+        <ol><li>...</li></ol>
+
+        <h3>Top Recommendations</h3>
+        <ol><li>...</li></ol>
+
+        <h3>Questions for the Team</h3>
+        <ul><li>...</li></ul>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_PRINCIPAL__ -->
+
   <!-- ====== SECTION: EXECUTIVE SUMMARY ====== -->
   <section id="summary">
     <h2>Executive Summary <span class="collapse-icon">&#9660;</span></h2>
@@ -330,6 +465,75 @@ details .details-body { padding: 12px 14px; }
       <!-- __CONTENT_SUMMARY__ -->
     </div>
   </section>
+
+  <!-- __IF_ASSOCIATE__ -->
+  <!-- ====== SECTION: GETTING STARTED GUIDE (Associate) ====== -->
+  <section id="getting-started-guide">
+    <h2>1.5 Getting Started Guide <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_GETTING_STARTED_GUIDE__ -->
+      <!--
+        <h3>Your First Day Checklist</h3>
+        <ul class="checklist">
+          <li>Clone the repository and run setup steps</li>
+          <li>Read key orientation files</li>
+          <li>Set up local development environment</li>
+          <li>Run the test suite to verify setup</li>
+        </ul>
+
+        <h3>Glossary of Terms</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+            <tbody><tr><td>...</td><td>...</td></tr></tbody>
+          </table>
+        </div>
+
+        <h3>Start Here: Top Files to Understand</h3>
+        <ol>
+          <li><code>src/app.py</code> - Main entry point, start here to understand the flow</li>
+        </ol>
+
+        <h3>Common Beginner Mistakes</h3>
+        <div class="callout callout-warn">
+          <strong>Mistake:</strong> ...
+          <p><strong>How to avoid:</strong> ...</p>
+        </div>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_ASSOCIATE__ -->
+
+  <!-- __IF_HAS_PRIMERS__ -->
+  <!-- ====== SECTION: TECHNOLOGY PRIMERS ====== -->
+  <section id="tech-primers">
+    <h2>Technology Primers <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_TECH_PRIMERS__ -->
+      <!--
+        For each unfamiliar technology:
+        <details>
+          <summary>Python Primer</summary>
+          <div class="details-body">
+            <h4>What it is</h4>
+            <p>...</p>
+            <h4>Why this project uses it</h4>
+            <p>...</p>
+            <h4>Key concepts</h4>
+            <ul><li>...</li></ul>
+            <h4>Quick reference</h4>
+            <ul>
+              <li>Official docs: <a href="#">link</a></li>
+              <li>Key files to study: <code>src/main.py</code></li>
+            </ul>
+            <h4>Common gotchas</h4>
+            <ul><li>...</li></ul>
+          </div>
+        </details>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_HAS_PRIMERS__ -->
 
   <!-- ====== SECTION: PROJECT IDENTITY ====== -->
   <section id="identity">
@@ -430,6 +634,118 @@ is_active = user.check_status()</pre>
     </div>
   </section>
 
+  <!-- __IF_MID__ -->
+  <!-- ====== SECTION: CONTRIBUTOR'S GUIDE (Mid-level) ====== -->
+  <section id="contributor-guide">
+    <h2>6.5 Contributor's Guide <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_CONTRIBUTOR_GUIDE__ -->
+      <!--
+        <h3>How to Add a New Feature</h3>
+        <ol>
+          <li>Create a feature branch from main</li>
+          <li>Add route in <code>src/routes/</code></li>
+          <li>Create handler in <code>src/handlers/</code></li>
+          <li>Add tests in <code>tests/</code></li>
+        </ol>
+
+        <h3>How to Add a New API Endpoint</h3>
+        <ol><li>...</li></ol>
+
+        <h3>How to Add Tests</h3>
+        <h4>Unit test example (from this codebase):</h4>
+        <pre>def test_user_creation():
+    user = User(name="test")
+    assert user.name == "test"</pre>
+
+        <h3>Code Review Checklist</h3>
+        <ul class="checklist">
+          <li>Follows naming conventions</li>
+          <li>Has appropriate test coverage</li>
+          <li>Error handling matches patterns</li>
+        </ul>
+
+        <h3>Patterns to Follow</h3>
+        <details>
+          <summary>Error handling pattern</summary>
+          <div class="details-body"><pre>...</pre></div>
+        </details>
+
+        <h3>Anti-Patterns to Avoid</h3>
+        <div class="callout callout-error">
+          <strong>Don't:</strong> ...
+          <p><strong>Instead:</strong> ...</p>
+        </div>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_MID__ -->
+
+  <!-- __IF_SENIOR__ -->
+  <!-- ====== SECTION: TECHNICAL HEALTH (Senior) ====== -->
+  <section id="tech-health">
+    <h2>6.5 Technical Health Assessment <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_TECH_HEALTH__ -->
+      <!--
+        <h3>Technical Debt Inventory</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Area</th><th>Description</th><th>Severity</th><th>Effort</th><th>Impact</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Authentication</td>
+                <td>Legacy session handling needs migration to JWT</td>
+                <td><span class="badge badge-yellow">Medium</span></td>
+                <td>2 weeks</td>
+                <td><span class="badge badge-green">High</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Refactoring Opportunities</h3>
+        <ol>
+          <li><strong>Database layer</strong> - Currently using raw SQL, recommend migration to ORM</li>
+        </ol>
+
+        <h3>Scalability Considerations</h3>
+        <ul>
+          <li><strong>Current bottleneck:</strong> Single database connection pool</li>
+          <li><strong>Recommendation:</strong> Implement read replicas</li>
+        </ul>
+
+        <h3>Security Considerations</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Area</th><th>Observation</th><th>Recommendation</th></tr></thead>
+            <tbody><tr><td>...</td><td>...</td><td>...</td></tr></tbody>
+          </table>
+        </div>
+
+        <h3>Dependency Health</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Dependency</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>express</td>
+                <td><span class="badge badge-green">Current</span></td>
+                <td>v4.18.2</td>
+              </tr>
+              <tr>
+                <td>lodash</td>
+                <td><span class="badge badge-yellow">Outdated</span></td>
+                <td>v3.x, upgrade to v4.x recommended</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_SENIOR__ -->
+
   <!-- ====== SECTION: API SURFACE ====== -->
   <section id="api">
     <h2>7. API Surface <span class="collapse-icon">&#9660;</span></h2>
@@ -508,6 +824,70 @@ is_active = user.check_status()</pre>
     </div>
   </section>
   <!-- __/IF_DOCS__ -->
+
+  <!-- __IF_PRINCIPAL__ -->
+  <!-- ====== SECTION: STRATEGIC RECOMMENDATIONS (Principal+) ====== -->
+  <section id="strategic-recommendations">
+    <h2>14.5 Strategic Recommendations <span class="collapse-icon">&#9660;</span></h2>
+    <div class="section-body">
+      <!-- __CONTENT_STRATEGIC_RECOMMENDATIONS__ -->
+      <!--
+        <h3>Architecture Evolution</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Recommendation</th><th>Rationale</th><th>Effort</th><th>Priority</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Migrate to event-driven architecture</td>
+                <td>Current synchronous calls create coupling</td>
+                <td><span class="badge badge-yellow">Medium</span></td>
+                <td><span class="badge badge-red">P0</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Build vs Buy Analysis</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component</th><th>Current</th><th>Alternative</th><th>Recommendation</th><th>Rationale</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Auth system</td>
+                <td>Custom JWT impl</td>
+                <td>Auth0, Keycloak</td>
+                <td><span class="badge badge-blue">Evaluate</span></td>
+                <td>Maintenance burden vs feature needs</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Team Structure Implications</h3>
+        <ul>
+          <li><strong>Module ownership:</strong> ...</li>
+          <li><strong>Knowledge bottlenecks:</strong> ...</li>
+          <li><strong>Recommendations:</strong> ...</li>
+        </ul>
+
+        <h3>Long-term Maintainability Assessment</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Factor</th><th>Current State</th><th>Trend</th><th>Concern</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Code complexity</td>
+                <td>Moderate</td>
+                <td>↑ Increasing</td>
+                <td><span class="badge badge-yellow">Medium</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      -->
+    </div>
+  </section>
+  <!-- __/IF_PRINCIPAL__ -->
 
   <!-- __IF_MULTI__ -->
   <!-- ====== SECTION: CROSS-PROJECT OVERLAP ====== -->

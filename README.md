@@ -2,6 +2,15 @@
 
 A Claude Code skill that reads every file in one or more code repositories, optionally correlates with an engineering handbook or documentation directory, and produces a structured analysis report. When multiple projects are provided, it identifies overlapping user stories across codebases.
 
+**Personalized for you:** Before analysis, Groundwork asks about your desired verbosity level and tech stack familiarity, then tailors the report accordingly:
+
+| Verbosity | Report Focus |
+|-----------|--------------|
+| **1 - Executive** | Strategic overview, architectural risks, industry comparisons, recommendations |
+| **2 - Architectural** | Technical debt assessment, scalability analysis, refactoring recommendations |
+| **3 - Balanced** | Contributor's guide, patterns to follow, code review checklist |
+| **4 - Comprehensive** | Getting started guide, glossary, "start here" files, learning resources |
+
 Built for teams that need deep codebase understanding -- whether analyzing a single project, correlating code with architecture docs, or finding overlap across related repositories.
 
 ## Installation
@@ -63,6 +72,16 @@ Single project (code-only):
 /groundwork /path/to/code-repo
 ```
 
+Remote GitHub repo:
+```
+/groundwork github.com/ansible/ansible
+```
+
+Short form (assumes GitHub):
+```
+/groundwork ansible/ansible
+```
+
 Single project with docs:
 ```
 /groundwork /path/to/code-repo --docs-dir=/path/to/docs
@@ -73,14 +92,19 @@ Single project with Ansible Engineering Handbook:
 /groundwork /path/to/code-repo --handbook=/path/to/handbook-repo
 ```
 
-Multiple projects:
+Multiple projects (local + remote):
 ```
-/groundwork /path/to/project-a /path/to/project-b
+/groundwork /path/to/project-a github.com/org/project-b
 ```
 
 Multiple projects with shared docs:
 ```
 /groundwork /path/to/project-a /path/to/project-b --docs-dir=/path/to/shared-docs
+```
+
+Specific branch:
+```
+/groundwork github.com/org/repo --branch=develop
 ```
 
 The skill reads all project repos, spins up parallel analysis agents per project, cross-references with docs (if provided), identifies cross-project user story overlaps (if multiple projects), and produces:
@@ -90,11 +114,19 @@ The skill reads all project repos, spins up parallel analysis agents per project
 
 ## What it expects
 
-One or more git repositories containing code:
+One or more git repositories containing code -- local paths or remote URLs:
 
 ```
-project-a/           <-- your application code
-project-b/           <-- another project (optional, for multi-project analysis)
+# Local paths
+project-a/                          <-- your application code
+project-b/                          <-- another project (optional)
+
+# Remote URLs (any of these formats work)
+https://github.com/org/repo
+github.com/org/repo
+org/repo                            <-- short form, assumes GitHub
+git@github.com:org/repo.git         <-- SSH URL
+https://gitlab.com/org/repo
 ```
 
 Optionally, a documentation directory:
@@ -123,7 +155,7 @@ The `--handbook` flag is a convenience shortcut: it looks for the "The Ansible E
 ## Options
 
 ```
-/groundwork <project-path> [<project-path> ...] [--docs-dir=<path>] [--handbook=<path>] [--focus=<area>]
+/groundwork <project-path> [<project-path> ...] [--docs-dir=<path>] [--handbook=<path>] [--focus=<area>] [--branch=<name>] [--depth=<n>]
 ```
 
 | Flag | Description |
@@ -131,6 +163,8 @@ The `--handbook` flag is a convenience shortcut: it looks for the "The Ansible E
 | `--docs-dir=<path>` | Path to any documentation directory. Enables correlation analysis. |
 | `--handbook=<path>` | Convenience alias. Looks for "The Ansible Engineering Handbook" subdirectory; falls back to generic docs. Mutually exclusive with `--docs-dir`. |
 | `--focus=<area>` | Expands a specific section in the report. |
+| `--branch=<name>` | Branch to checkout for remote repos (default: default branch). |
+| `--depth=<n>` | Shallow clone depth for remote repos. Omit for full clone (recommended for git history analysis). |
 
 `--focus` values:
 
@@ -151,6 +185,10 @@ The skill operates in phases, progressively activating features based on argumen
 
 ```
                           /groundwork
+                               |
+                     Phase 0: User Profiling
+                   (verbosity level, tech
+                    stack familiarity)
                                |
                      Phase 1: Discovery
                    (per-project: tech stack,
@@ -178,8 +216,24 @@ The skill operates in phases, progressively activating features based on argumen
                   source files -- mandatory gate)
                                |
                   Phase 4: Report + Q&A
-                  (markdown + HTML output)
+                  (markdown + HTML output,
+                   personalized by verbosity level)
 ```
+
+### Phase 0 -- User Profiling
+
+Before analysis begins, Groundwork asks two questions:
+
+1. **Verbosity Level:** 1 (Executive), 2 (Architectural), 3 (Balanced), or 4 (Comprehensive)
+2. **Tech Stack Familiarity:** For each detected technology, rate as New/Learning/Comfortable/Expert
+
+This profile customizes the entire report:
+- **Verbosity 4** includes detailed explanations, glossaries, and "start here" guides
+- **Verbosity 3** includes contributor guides and patterns to follow
+- **Verbosity 2** includes technical debt assessments and scalability analysis
+- **Verbosity 1** includes strategic overviews and architectural recommendations
+
+Technologies marked as unfamiliar automatically include "Technology Primer" sections with concepts, examples, and learning resources.
 
 ### Phase 1 -- Discovery
 
@@ -239,17 +293,22 @@ Claims that pass stay. Minor inaccuracies get auto-corrected. Unverifiable claim
 
 ### Markdown (in conversation)
 
-Sections 12-14 only appear when docs are provided. Section 13.5 only appears with multiple projects.
+Sections 12-14 only appear when docs are provided. Section 13.5 only appears with multiple projects. Personalized sections appear based on verbosity level.
 
 | # | Section | Covers |
 |---|---------|--------|
+| 0 | Strategic Overview | One-page assessment, risks, recommendations *(Verbosity 1 only)* |
 | -- | Executive Summary | 2-3 paragraph overview |
+| 1.5 | Getting Started Guide | First day checklist, glossary, "start here" files *(Verbosity 4 only)* |
+| -- | Technology Primers | Concepts, examples, resources for unfamiliar tech *(based on profile)* |
 | 1 | Project Identity | Language, framework, repo stats |
 | 2 | Architecture | Component map, layers, diagram analysis, divergences |
 | 3 | Directory & Modules | Every directory explained |
 | 4 | Tech Stack & Deps | Full dependency table |
 | 5 | Entry Points & Flows | Main execution paths |
 | 6 | Coding Conventions | Naming, errors, logging -- with code snippets |
+| 6.5 | Contributor's Guide | How to add features, patterns, code review checklist *(Verbosity 3 only)* |
+| 6.5 | Technical Health | Tech debt, scalability, security, dependency health *(Verbosity 2 only)* |
 | 7 | API Surface | Every endpoint |
 | 8 | Data Models | Schema, migrations |
 | 9 | Testing | Framework, organization, mocking |
@@ -257,8 +316,9 @@ Sections 12-14 only appear when docs are provided. Section 13.5 only appears wit
 | 11 | Getting Started | Synthesized setup guide |
 | 12 | Handbook Assessment | Per-page inventory, coverage score, proposal status |
 | 13 | Correlation Matrix | Bidirectional handbook-to-code mapping |
-| 13.5 | Cross-Project Overlap | User story inventory, overlap matrix, recommendations (multi-project only) |
+| 13.5 | Cross-Project Overlap | User story inventory, overlap matrix, recommendations *(multi-project only)* |
 | 14 | Cross-Reference | Orphaned code, stale docs, contradictions |
+| 14.5 | Strategic Recommendations | Architecture evolution, build vs buy, team structure *(Verbosity 1 only)* |
 | 15 | Verification Summary | Pass rate, corrections, removals |
 | 16 | Git History | Velocity, contributors, hot areas |
 | 17 | Key Findings | Top 10 things a new engineer should know |
@@ -269,15 +329,22 @@ After the report, the conversation stays open for follow-up questions with the f
 
 Interactive single-page report at `/tmp/groundwork-report.html`:
 
-- Sidebar navigation with scroll spy
+- **Personalization banner** showing your verbosity level and tech familiarity
+- Sidebar navigation with scroll spy (includes personalized sections)
 - Collapsible sections, searchable tables
 - Color-coded status badges and coverage bars
+- Verbosity level badges (1-Executive/2-Architectural/3-Balanced/4-Comprehensive)
 - Dark/light theme toggle (auto-detects OS preference)
 - Print-friendly, mobile-responsive
 - Zero external dependencies -- one self-contained file
 
 ## Tips
 
+- **Choose the right verbosity level.** The report is tailored to your selection -- Verbosity 4 includes onboarding help, Verbosity 1 focuses on strategic insights. Choosing the wrong level gives you a less useful report.
+- **Mark unfamiliar tech accurately.** Technologies you mark as "New" or "Learning" get primer sections with concepts and learning resources. Don't skip these if you need them.
+- **Remote repos are cloned to `/tmp`.** After analysis, you'll be asked if you want to delete them. Say yes unless you plan to explore the code locally.
+- **Private repos need local clone.** For repos requiring authentication, clone locally first and provide the local path.
+- **Skip `--depth` for full git analysis.** Shallow clones (`--depth=1`) are faster but skip git history analysis in section 16.
 - **Large repos take time.** The skill reads every file. For a 500-file repo, expect 10-15 minutes. Multiple projects multiply this.
 - **Start without docs.** You can always re-run with `--docs-dir` later for correlation analysis.
 - **Use `--focus` when you know what you need.** Other sections still appear but with less detail.
